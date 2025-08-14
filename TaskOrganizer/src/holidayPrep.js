@@ -1,16 +1,16 @@
-/* var holidayPrep = new ToDoList("Holiday Prep", projectSpreadsheet, 1);
+var holidayPrep = new MyUtilities.ToDoList("Holiday Prep", projectSpreadsheet, 1);
 holidayPrep.checkboxColumn = "Imported";
 holidayPrep.nameColumnName = "Task";
 holidayPrep.projectColumnName = "Occasion";
 holidayPrep.dueDateColumnName = "Due Date";
 holidayPrep.importMonthColumnName = "Import Month";
 holidayPrep.annualResetRowTaskName = "Annual Reset";
-*/
+holidayPrep.project = "Holiday Prep";
+
 function updateHolidayPrep() {
 	// Get today's date in month format
-	var today = new Date();
 	let thisMonth = Utilities.formatDate(
-		today,
+		new Date(),
 		Session.getScriptTimeZone(),
 		"MMMMM"
 	);
@@ -34,24 +34,24 @@ function updateHolidayPrep() {
 function migrateHolidayPrepToTasks() {
   updateHolidayPrep();
   
-	var importMonthColumn = holidayPrep.getColumnNumber(
-		holidayPrep.importMonthColumnName
-	);
 	var importTaskColumn = holidayPrep.getColumnNumber(
 		holidayPrep.nameColumnName
 	);
-	var importMonth;
+
 	var taskName;
 	for (var i = holidayPrep.titleRow + 1; i <= holidayPrep.lastRow; i++) {
-		importMonth = holidayPrep.getValue(importMonthColumn, i);
 		taskName = holidayPrep.getValue(importTaskColumn, i);
-		if (importMonth == thisMonth && !isImported(taskName))
+		if (!isImported(taskName) && taskName != holidayPrep.annualResetRowTaskName)
 			migrateHolidayToTask(i);
 	}
 }
 
 function migrateHolidayToTask(i) {
-	holidayPrep.exportRow(projectTasks, i);
+  toDoBoard.importToDoListRow(holidayPrep, i, {
+    "Name" : "Task",
+    "Due" : "Due Date"
+  })
+	holidayPrep.setValue(holidayPrep.checkboxColumn, i, true);
 }
 
 function isImported(taskName) {

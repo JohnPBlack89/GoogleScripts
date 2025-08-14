@@ -1,48 +1,9 @@
-var commonNames = {
-	// Name
-	bitName: "Bit",
-
-	// Project
-	projectColumnName: "Project",
-	projectCell: "Project:",
-	projectNamedRange: "Projects",
-
-	// Quality
-	qualityColumn: "Quality",
-	qualityNamedRange: "Qualities",
-	bestQuality: "Highest Quality",
-	worstQuality: "Lowest Quality",
-
-	//Step
-	stepColumn: "Current Step",
-	stepNamedRange: "Steps",
-	bestStep: "Earliest Step",
-	worstStep: "Latest Step",
-
-	// Links
-	linkColumn: "Links w/",
-	linkNamedRange: "Bits",
-
-	// Topics
-	topicColumn: "Topics",
-	topicNamedRange: "Topics",
-
-	// Tech Used
-	techColumn: "Techniques Used",
-	techNamedRange: "Techniques",
-
-	// Performances
-	performanceColumn: "Performances",
-	performanceNamedRange: "Performances",
-
-	// Current
-	currentColumn: "Current",
-};
-
 var operatorStrings = {
 	best: "Best",
 	worst: "Worst",
 };
+
+var lastUpdatedString = "Last Updated:"
 
 var emptyRichText = SpreadsheetApp.newRichTextValue().setText("").build();
 
@@ -72,7 +33,10 @@ function getRichTextToRightOfValue(sheet, targetValue, rowNumber) {
 	return null;
 }
 
-function sortSheets() {
+/**
+ * Sorts the sheets in the spreadsheet alphabetically
+ */
+function sortSheetsAlphabetically() {
 	var sheetNameArray = [];
 	var sheets = ss.getSheets();
 
@@ -88,32 +52,6 @@ function sortSheets() {
 	}
 }
 
-function isBit(sheetName) {
-	return !/^[^a-zA-Z]/.test(sheetName);
-}
-
-/**
- *
- * @param {Sheet} sheet
- * @returns
- */
-function getHeaderMap(sheet) {
-	if (
-		sheet == null ||
-		sheet.getLastColumn() == 0 ||
-		sheet.getRange(1, 1, 1, sheet.getLastColumn()) == undefined
-	)
-		return {};
-
-	var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-	var headerMap = {};
-	headers.forEach((header, index) => {
-		headerMap[header] = index + 1; // Column numbers start at 1
-	});
-
-	return headerMap;
-}
-
 function isDropdown(cell) {
 	Organizer.assertSingleCell(cell);
 	const rule = cell.getDataValidation();
@@ -127,15 +65,11 @@ function isDropdown(cell) {
 	);
 }
 
-function getRangeFromColumn(sheet, columnName) {
-	var headerMap = getHeaderMap(sheet);
-	var columnNumber = headerMap[columnName];
-	if (columnNumber == undefined) return null;
-
-	var lastRow = getLastDropdown(sheet, columnName);
-
-	return sheet.getRange(2, columnNumber, lastRow, 1);
+function isBit(sheetName) {
+	return !/^[^a-zA-Z]/.test(sheetName);
 }
+
+
 
 function getLastDropdown(sheet, columnName) {
 	var headerMap = getHeaderMap(sheet);

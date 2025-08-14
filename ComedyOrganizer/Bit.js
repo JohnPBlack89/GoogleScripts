@@ -1,9 +1,9 @@
-class Bit {
-	constructor(sheet) {
-		this.sheet = sheet;
-		this.titleRow = 1;
+class Bit extends Organizer.TableContext {
+	constructor(sheetName) {
+    super(sheetName, SpreadsheetApp.getActiveSpreadsheet(), 1);
 	}
 
+  // Returns the name of the bit (taken from the bit sheet)
 	getName() {
 		if (this.nameCache != null) return this.nameCache;
 		this.nameCache = this.sheet.getName();
@@ -14,160 +14,70 @@ class Bit {
 		return this.getName();
 	}
 
-	/**
-	 * Checks whether or not this bit has been updated in the bitList sheet
-	 *
-	 * @returns true|false
-	 */
-	isUpdated() {
-		if (this.updatedCache != null) return this.updatedCache;
-		if (this.bitListRowNumber == null) return false;
+  //
+  getUpdatedDate() {
+    return getRichTextToRightOfValue(this.sheet,lastUpdatedString,this.titleRow).getText();
+  }
 
-		var ud = this.updatedDate;
-		var bitListUpdatedDate = 0;
-		return ud == bitListUpdatedDate;
-	}
+  get updatedOn() {
+    return this.updatedDate();
+  }
 
-	get updated() {
-		return this.isUpdated();
-	}
+  // Gets the 
+  getBitTable() {
+    if (this.tasksTableCache != null) return this.tasksTableCache;
 
-	getUpdatedDate() {
-		var titleRow = this.titleRow;
-		var rt = getRichTextToRightOfValue(
-			this.sheet,
-			"Last Updated:",
-			this.titleRow
-		);
-		return rt;
-	}
+    this.tasksTableCache = this.sheet.getRange(
+        this.titleRow + 1,
+        1,
+        getLastDropdown(this.sheet,"Topics"),
+        this.lastColumn
+    );
 
-	get updatedDate() {
-		return this.getUpdatedDate();
-	}
+    return this.tasksTableCache;
+  }
 
-	/***
-	 * Finds which row the bit is at on the bitListSheet
-	 *
-	 * @returns {number}
-	 */
-	getBitListRowNumber() {
-		if (this.bitListRowNumberCache != null) return this.bitListRowNumberCache;
+  get table() {
+    return this.getBitTable();
+  }
 
-		var lastRow = bitListSheet.getLastRow();
-		var rowValues = bitListSheet.getRange(1, 1, lastRow, 1).getValues();
-
-		for (let i = 0; i < rowValues.length; i++) {
-			if (rowValues[i][0] == this.name) {
-				this.bitListRowNumberCache = i + 1;
-				return this.bitListRowNumberCache;
-			}
-		}
-		return null;
-	}
-
-	get bitListRowNumber() {
-		return this.getBitListRowNumber();
-	}
-
-	getBitRowDetails() {
-		var row = [];
-		var headerMap = getHeaderMap(bitListSheet);
-		for (var header in headerMap) row.push(getBitColumnRouter(sheet, header));
-
-		return row;
-	}
-
-	getBitColumnRouter(sheet, columnName) {
-		// Name
-		if (columnName == commonNames.bitName) return getBitNameCell(sheet);
-
-		// Project
-		if (columnName == commonNames.projectColumnName)
-			return getProjectCell(sheet);
-
-		// "Best/Worst Columns" (Quality, Step)
-		if (columnName == commonNames.bestQuality)
-			return getMostCellInColumn(sheet, "quality", "Best");
-
-		if (columnName == commonNames.worstQuality)
-			return getMostCellInColumn(sheet, "quality", "Worst");
-
-		if (columnName == commonNames.bestStep)
-			return getMostCellInColumn(sheet, "step", "Best");
-
-		if (columnName == commonNames.worstStep)
-			return getMostCellInColumn(sheet, "step", "Worst");
-
-		// "Total" Columns (Links w/, Topics, Performances, Tech Used)
-		if (columnName == commonNames.linkColumn)
-			return getTotaledColumn(sheet, columnName, commonNames.linkNamedRange);
-
-		if (columnName == commonNames.techColumn)
-			return getTotaledColumn(sheet, columnName, commonNames.techNamedRange);
-
-		if (columnName == commonNames.topicColumn)
-			return getTotaledColumn(sheet, columnName, commonNames.topicNamedRange);
-
-		if (columnName == commonNames.performanceColumn)
-			return getTotaledColumn(
-				sheet,
-				columnName,
-				commonNames.performanceNamedRange
-			);
-
-		if (columnName == commonNames.currentColumn)
-			return getCheckboxValue(sheet.getName(), commonNames.currentColumn);
-
-		// If column name isn't found, return empty richtext value
-		return emptyRichText;
-	}
-
-	getBitNameCell(sheet) {
+  // 
+	getBitNameRichTextValue() {
 		return SpreadsheetApp.newRichTextValue()
-			.setText(sheet.getName())
-			.setLinkUrl("#gid=" + sheet.getSheetId())
+			.setText(this.sheet.getName())
+			.setLinkUrl("#gid=" + this.sheet.getSheetId())
 			.build();
 	}
 
-	getProjectCell(sheet) {
-		Logger.log(`Start getProjectCell for ${sheet.getName()}`);
-		var richText = getRichTextToRightOfValue(sheet, commonNames.projectCell, 1);
+  get nameRTV() {
+    return this.getBitNameRichTextValue();
+  }
+
+
+  getProjectRichTextValue() {
+		Logger.log(`Start getProjectRichTextValue for ${this.sheet.getName()}`);
+		var richText = getRichTextToRightOfValue(this.sheet, projectCell, 1);
 
 		if (richText == null) return emptyRichText;
 
 		Logger.log(`Project is ${richText.getText()}`);
 		return getNamedRangeHyperLinks(
 			richText.getText(),
-			commonNames.projectNamedRange
+			projectNamedRange
 		);
 	}
 
-	getCheckboxValue(rowHeader, colHeader) {
-		Logger.log(`Start getCheckboxValue of ${colHeader} for ${rowHeader}`);
-		const data = bitListSheet.getDataRange().getValues();
+  get project() {
+    return this.getProjectRichTextValue()
+  }
 
-		// Find row index based on first column
-		const rowIndex = data.findIndex((row) => row[0] === rowHeader);
-		if (rowIndex === -1)
-			return SpreadsheetApp.newRichTextValue().setText("").build();
-
-		// Find column index based on first row
-		const colIndex = data[0].indexOf(colHeader);
-		if (colIndex === -1) throw new Error("Column header not found");
-
-		// Get the checkbox value
-		const cellValue = data[rowIndex][colIndex];
-		Logger.log(`Checkbox value at (${rowHeader}, ${colHeader}): ${cellValue}`);
-		return SpreadsheetApp.newRichTextValue().setText(cellValue).build();
-	}
-
-	getMostCellInColumn(sheet, columnPrefix, operator) {
+  // Gets best/worst in a column
+	getMostCellInColumn(columnName, operator) {
 		Logger.log(
-			`Start getMostCellInColumn ${operator} for ${columnPrefix} for ${sheet.getName()}`
+			`Start getMostCellInColumn ${operator} for ${columnName} for ${this.sheet.getName()}`
 		);
 		var columnRange = getRangeFromColumn(
-			sheet,
+			this.sheet,
 			commonNames[columnPrefix + "Column"]
 		);
 		if (columnRange == null) return emptyRichText;
@@ -175,7 +85,7 @@ class Bit {
 		let resultString = "";
 
 		columnRange.sort({ column: columnRange.getColumn(), ascending: true });
-		const values = columnRange.getValues().flat(); // Flatten to 1D array
+		const values = columnRange.getValues().flat();
 
 		if (operator == operatorStrings.worst)
 			resultString = values[values.length - 1];
@@ -183,15 +93,15 @@ class Bit {
 		if (operator == operatorStrings.best) resultString = values[0];
 		var richText = getNamedRangeHyperLinks(
 			resultString,
-			commonNames[columnPrefix + "NamedRange"]
+			commonNames[columnName + "NamedRange"]
 		);
+
 		Logger.log(`getMostCellInColumn ${richText.getText()}`);
 		return richText;
 	}
 
-	getTotaledColumn(sheet, columnName, namedRange) {
-		var range = getRangeFromColumn(sheet, columnName);
-		if (range == null) return emptyRichText;
+	getTotaledColumn(columnName) {
+    var columnRange = this[columnBase + "Values"];
 		const values = range
 			.getValues()
 			.flat()

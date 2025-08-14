@@ -27,5 +27,6 @@ function checkBitListRows() {
 function test() {
   var sheet = ss.getSheetByName("ADHD at 30");
   var bit = new Bit(sheet);
-  bit.updated;
+  var u = bit.updatedOn;
+  debugger;
 }
