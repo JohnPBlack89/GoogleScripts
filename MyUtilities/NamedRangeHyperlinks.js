@@ -4,11 +4,11 @@
  * @param {Range} cell the name of the sheet containing the cell
  * @param {string} namedRangeName the name of the named range to check
  */
-function setCellHyperlinksFromNamedRange(cell, namedRangeName) {
+function setCellHyperlinksFromNamedRange(cell, namedRangeName, spreadsheet = SpreadsheetApp.getActiveSpreadsheet()) {
 	assertSingleCell(cell);
 
 	// Gets the RichText
-	var richText = getNamedRangeRichText(cell, namedRangeName);
+	var richText = getNamedRangeRichText(cell, namedRangeName, spreadsheet);
 
 	cell.setRichTextValue(richText);
 }
@@ -21,30 +21,28 @@ function setCellHyperlinksFromNamedRange(cell, namedRangeName) {
  * @param {string} namedRangeName
  * @returns {RichTextValue}
  */
-function getNamedRangeRichText(cell, namedRangeName) {
+function getNamedRangeRichText(cell, namedRangeName, spreadsheet = SpreadsheetApp.getActiveSpreadsheet()) {
 	assertSingleCell(cell);
 	var richText;
   var cellValue =  cell.getValue();
 
-	var cellSelections =cellValue.replaceAll(", ", ",").split(",");
+	var cellSelections = cellValue.replaceAll(", ", ",").split(",");
 	if (!cellSelections | (cellSelections[0] == "")) return emptyRichText;
 
 	// Get values from named range to compare against
-	var namedRange = projectSpreadsheet.getRangeByName(namedRangeName);
+	var namedRange = spreadsheet.getRangeByName(namedRangeName);
 	var namedRangeValues = namedRange.getValues().flat();
 
 	// Cycle throught cellSelections
 	for (let i = 0; i < cellSelections.length; i++) {
-		// Cycle through named range values
-		for (let j = 0; j < namedRange.getNumRows(); j++) {
-			var namedRangeValue = namedRangeValues[j];
+    var cellSelection = cellSelections[i];
+    if(cellSelection == null || cellSelection == undefined || cellSelection == "")
+      continue;
 
-			if (namedRangeValue == cellSelections[i]) {
-				// Get cell from named range
-				var rangeCell = namedRange.getCell(j + 1, 1);
-				richText = addRichTextURL(rangeCell, richText);
-			}
-		}
+    var index = namedRangeValues.indexOf(cellSelection);
+    var rangeCell = namedRange.getCell(index + 1, 1);
+    richText = addRichTextURL(rangeCell, richText);
+    continue;
 	}
 	return richText;
 }

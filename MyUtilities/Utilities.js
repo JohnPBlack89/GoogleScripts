@@ -39,20 +39,7 @@ function createGuid() {
 	return Utilities.getUuid();
 }
 
-/**
- * Checks if a given URL is a reference to another sheet within the same document
- * An internal sheet reference typically contains the spreadsheet ID and a "#gid=" parameter.
- *
- * @param {string} url The URL to check.
- * @returns {boolean} True if the URL is an internal sheet reference, false otherwise.
- */
-function isInternalSheetReference(url) {
-	if (!url || typeof url !== "string") {
-		return false;
-	}
 
-	return url.startsWith("#gid=");
-}
 
 
 function getHeaderMap(sheet, titleRow, lastColumn) {
@@ -70,6 +57,13 @@ function getHeaderMap(sheet, titleRow, lastColumn) {
 	});
 
 	return headerMap;
+}
+
+function extractSpreadsheetId(url) {
+  if (url.startsWith("#gid="))
+      return url.slice(5);
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)\//);
+  return match ? match[1] : null;
 }
 
 /**
@@ -354,21 +348,6 @@ function blendHexColors(hex1, hex2) {
 	return rgbToHex(blended.r, blended.g, blended.b);
 }
 
-/**
- * Validates that the provided Range object refers to exactly one cell.
- * Throws an error if the range spans more than one row or column.
- *
- * @param {Range} range - The Range object to validate.
- * @throws {Error} If the range is not a single cell.
- */
-function assertSingleCell(range) {
-	if (range.getNumRows() !== 1 || range.getNumColumns() !== 1) {
-		throw new Error(
-			`Expected a single cell, but got a range of ${range.getNumRows()} rows and ${range.getNumColumns()} columns.`
-		);
-	}
-}
-
 function columnToLetter(column) {
 	let letter = "";
 	while (column > 0) {
@@ -392,4 +371,73 @@ function getDaysBetween(startDate, endDate) {
   const diffInDays = Math.round(diffInMs / msPerDay);
 
   return diffInDays;
+}
+
+//
+function getRichTextToRightOfValue(sheet, targetValue, rowNumber) {
+	const dataRange = sheet.getDataRange();
+	const values = dataRange.getValues();
+	const richTexts = dataRange.getRichTextValues();
+
+	for (let col = 0; col < values[rowNumber].length - 1; col++) {
+		if (values[rowNumber - 1][col] === targetValue) {
+			const richTextRight = richTexts[rowNumber][col + 1];
+			Logger.log("Text: " + richTextRight.getText());
+			Logger.log("Link: " + richTextRight.getLinkUrl());
+			Logger.log("Style: " + JSON.stringify(richTextRight.getTextStyle()));
+			return richTextRight;
+		}
+	}
+
+	Logger.log("Value not found.");
+	return null;
+}
+
+/**
+ * Sorts the sheets in the spreadsheet alphabetically
+ */
+function sortSheetsAlphabetically(spreadsheet) {
+	var sheetNameArray = [];
+	var sheets = spreadsheet.getSheets();
+
+	for (var i = 0; i < sheets.length; i++) {
+		sheetNameArray.push(sheets[i].getName());
+	}
+
+	sheetNameArray.sort();
+
+	for (var j = 0; j < sheets.length; j++) {
+		spreadsheet.setActiveSheet(spreadsheet.getSheetByName(sheetNameArray[j]));
+		spreadsheet.moveActiveSheet(j + 1);
+	}
+}
+
+function isDropdown(cell) {
+	assertSingleCell(cell);
+	const rule = cell.getDataValidation();
+	var val = cell.getValue();
+	if (!rule) return false;
+
+	const criteria = rule.getCriteriaType();
+	return (
+		criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST ||
+		criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE
+	);
+}
+
+function getLastDropdown(sheet, columnName) {
+	var headerMap = getHeaderMap(sheet);
+	var columnNumber = headerMap[columnName];
+	if (columnNumber == undefined) return 0;
+
+	const lastRow = sheet.getLastRow();
+	let lastDropdownRow = 0;
+
+	for (let row = 1; row <= lastRow; row++) {
+		const cell = sheet.getRange(row, columnNumber);
+		if (isDropdown(cell)) {
+			lastDropdownRow = row;
+		}
+	}
+	return lastDropdownRow + 1;
 }

@@ -2,11 +2,11 @@ var TableContext = class TableContext {
 	constructor(sheetName, spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
     if(!spreadsheet.getSheetByName(sheetName))
       throw new Error(`${sheetName} sheet not found on ${spreadsheet.getName()} spreadsheet`);
+
 		this.SheetName = sheetName;
 		this.titleRow = titleRowNumber;
     this.firstColumn = 1;
 		this.Spreadsheet = spreadsheet;
-
     
 		for(var header in this.headerMap)
       this.createColumnProperty(header);
@@ -22,7 +22,9 @@ var TableContext = class TableContext {
     const hyperlinkFunctionName = `${baseName}SetHyperlinks`;
     const namedRangeName = `${columnName}NamedRange`;
     const valueRangeGetterName = `${baseName}Values`;
-    const valueRangeCacheKey = `${baseName}ValuesCacheKey`
+    const valueRangeCacheKey = `${baseName}ValuesCacheKey`;
+    const richTextsGetterName = `${baseName}RichTextValues`
+    const richTextsCacheKey = `${baseName}RichTextsCacheKey`
 
     Object.defineProperty(this, numberGetterName, {
       get: function () {
@@ -39,12 +41,29 @@ var TableContext = class TableContext {
       get: function () {
         if (this[valueRangeCacheKey] != null) return this[valueRangeCacheKey];
 
-        this[valueRangeCacheKey] = this.getColumnValues(columnName);
+        this[valueRangeCacheKey] = this.sheet
+			    .getRange(this.titleRow + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRow, 1)
+			    .getValues();
+
         return this[valueRangeCacheKey];
       },
       configurable: true,
       enumerable: true,
     });
+
+    Object.defineProperty(this, richTextsGetterName, {
+      get: function () {
+        if (this[richTextsCacheKey] != null) return this[richTextsCacheKey];
+
+        this[richTextsCacheKey] = this.sheet
+			    .getRange(this.titleRow + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRow, 1)
+			    .getRichTextValues();
+        return this[richTextsCacheKey];
+      },
+      configurable: true,
+      enumerable: true,
+    });
+
 
     Object.defineProperty(this, sortFunctionName , { value: function() {
 		    this.sheetRange.sort(this[numberGetterName]);
@@ -54,9 +73,8 @@ var TableContext = class TableContext {
     Object.defineProperty(this, hyperlinkFunctionName , { value: function() {
       var cell;
       for(let i = this.titleRow + 1; i <= this.lastRow; i++) {
-        var gcn = this.genreColumnNumber;
-        cell = this.sheet.getRange(i, this.genreColumnNumber);
-        setCellHyperlinksFromNamedRange(cell, namedRangeName);
+        cell = this.sheet.getRange(i, this[numberGetterName]);
+        setCellHyperlinksFromNamedRange(cell, namedRangeName, this.Spreadsheet);
       }
       }, configurable: true, enumerable: true,
     })
@@ -79,7 +97,7 @@ var TableContext = class TableContext {
 
     this.sheetRangeCache = this.sheet.getRange(
         this.titleRow + 1,
-        1,
+        this.firstColumn,
         this.lastRow - this.titleRow + 1,
         this.lastColumn
     );
@@ -168,14 +186,7 @@ var TableContext = class TableContext {
 		return null;
 	}
 
-  /**
-   * Return values for the column
-   */
-  getColumnValues(columnTitle){
-    return this.sheet
-			.getRange(this.titleRow + 1, this.getColumnNumber(columnTitle), this.lastRow - this.titleRow, 1)
-			.getValues();
-  }
+  
 
 	/**
 	 * Returns a row number based on a value passed to the function
@@ -224,9 +235,9 @@ var TableContext = class TableContext {
 	 */
 	showHideColumns(checkboxRow) {
 		if (typeof column == "string")
-			checkboxRow = this.getRowNumber(1, checkboxRowName);
+			checkboxRow = this.getRowNumber(this.firstColumn, checkboxRowName);
 
-		for (var i = 1; i <= this.lastColumn; i++) {
+		for (var i = this.firstColumn; i <= this.lastColumn; i++) {
 			var checkboxCell = this.sheet.getRange(checkboxRow, i);
 
 			// Check if the checkbox is checked

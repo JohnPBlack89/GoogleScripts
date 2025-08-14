@@ -2,19 +2,19 @@ var projectSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 var longTerm = new MyUtilities.ToDoList("Long-Term", projectSpreadsheet, 1);
 var toDoBoard = new MyUtilities.ToDoList("Tasks", projectSpreadsheet, 2);
 
-var emptyRichText = SpreadsheetApp.newRichTextValue().setText("").build();
-
 function onEdit(e) {
   // To-Do Board edits
 	if (projectSpreadsheet.getActiveSheet().getName() == toDoBoard.sheet.getName()) {
     toDoBoard.updateRowDate(e)
 		toDoBoard.organize();
     toDoBoard.genreSetHyperlinks();
+    toDoBoard.projectSetHyperlinks();
   }
   
   // Long term edits
-  if (projectSpreadsheet.getActiveSheet().getName() == longTerm.sheet.getName())
+  if (projectSpreadsheet.getActiveSheet().getName() == longTerm.sheet.getName()) {
 		longTerm.genreSetHyperlinks();
+  }
 
   // Holiday Prep edits
   if (projectSpreadsheet.getActiveSheet().getName() == holidayPrep.sheet.getName())
@@ -28,14 +28,25 @@ function midnightRun() {
 }
 
 function importLongTerm() {
+  for(var projectNumber in longTerm.projectRichTextValues) {
+    var link = longTerm.projectRichTextValues[projectNumber][0].getLinkUrl();
+    if(link == null)
+      continue;
+    
+    // Check if "Active" column is check- if not, don't import
+    var projectActive = longTerm.activeValues[projectNumber][0];
+    if(!projectActive)
+      continue;
+    
+    toDoBoard.syncWithUrl(link);
+  }
+  
+  // Import Genres
+  for(var genreNumber in projectSpreadsheet.getRangeByName("GenreNamedRange").getRichTextValues()) {
+    var link = projectSpreadsheet.getRangeByName("GenreNamedRange").getRichTextValues()[genreNumber][0].getLinkUrl();
+    if(link == null)
+      continue;
+
+    toDoBoard.syncWithUrl(link);
+  }
 }
-
-
-/***
- * To Do
- * - LongTerm Imports
- *    - Create Project Named Range and update hyperlinks on main page
- *    - Get Genre From Project on Longterm Imports
- *    - Cascade Imports (Might need isTask)
- * - Import Google Doc
- */
