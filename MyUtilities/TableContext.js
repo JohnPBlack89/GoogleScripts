@@ -4,7 +4,7 @@ var TableContext = class TableContext {
       throw new Error(`${sheetName} sheet not found on ${spreadsheet.getName()} spreadsheet`);
 
 		this.SheetName = sheetName;
-		this.titleRow = titleRowNumber;
+		this.titleRowNumber = titleRowNumber;
     this.firstColumn = 1;
 		this.Spreadsheet = spreadsheet;
     
@@ -42,7 +42,7 @@ var TableContext = class TableContext {
         if (this[valueRangeCacheKey] != null) return this[valueRangeCacheKey];
 
         this[valueRangeCacheKey] = this.sheet
-			    .getRange(this.titleRow + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRow, 1)
+			    .getRange(this.titleRowNumber + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRowNumber, 1)
 			    .getValues();
 
         return this[valueRangeCacheKey];
@@ -56,7 +56,7 @@ var TableContext = class TableContext {
         if (this[richTextsCacheKey] != null) return this[richTextsCacheKey];
 
         this[richTextsCacheKey] = this.sheet
-			    .getRange(this.titleRow + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRow, 1)
+			    .getRange(this.titleRowNumber + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRowNumber, 1)
 			    .getRichTextValues();
         return this[richTextsCacheKey];
       },
@@ -72,7 +72,7 @@ var TableContext = class TableContext {
 
     Object.defineProperty(this, hyperlinkFunctionName , { value: function() {
       var cell;
-      for(let i = this.titleRow + 1; i <= this.lastRow; i++) {
+      for(let i = this.titleRowNumber + 1; i <= this.lastRow; i++) {
         cell = this.sheet.getRange(i, this[numberGetterName]);
         setCellHyperlinksFromNamedRange(cell, namedRangeName, this.Spreadsheet);
       }
@@ -83,7 +83,7 @@ var TableContext = class TableContext {
   getHeaderMap() {
     if (this.headerCache != null) return this.headerCache;
 
-    this.headerCache = getHeaderMap(this.sheet, this.titleRow, this.lastColumn);
+    this.headerCache = getHeaderMap(this.sheet, this.titleRowNumber, this.lastColumn);
     return this.headerCache;
   }
 
@@ -96,9 +96,9 @@ var TableContext = class TableContext {
     if (this.sheetRangeCache != null) return this.sheetRangeCache;
 
     this.sheetRangeCache = this.sheet.getRange(
-        this.titleRow + 1,
+        this.titleRowNumber + 1,
         this.firstColumn,
-        this.lastRow - this.titleRow + 1,
+        this.lastRow - this.titleRowNumber + 1,
         this.lastColumn
     );
 
@@ -173,7 +173,7 @@ var TableContext = class TableContext {
 		if (this.headerCache[columnTitle] != null) return this.headerCache[columnTitle];
 
 		var titles = this.sheet
-			.getRange(this.titleRow, 1, 1, this.lastColumn)
+			.getRange(this.titleRowNumber, 1, 1, this.lastColumn)
 			.getValues();
 
 		for (let i = 0; i < titles[0].length; i++) {
@@ -200,7 +200,7 @@ var TableContext = class TableContext {
 
 		var rowValues = this.sheet.getRange(1, column, this.lastRow, 1).getValues();
 
-		for (let i = this.titleRow; i < rowValues.length; i++) {
+		for (let i = this.titleRowNumber; i < rowValues.length; i++) {
 			if (rowValues[i][0] == cellValue) {
 				return i + 1;
 			}
@@ -218,7 +218,7 @@ var TableContext = class TableContext {
 	showHideRows(checkboxColumnName) {
 		var checkboxColumnNumber = this.getColumnNumber(checkboxColumnName);
 
-		for (var i = this.titleRow + 1; i <= this.lastRow; i++) {
+		for (var i = this.titleRowNumber + 1; i <= this.lastRow; i++) {
 			var checkboxCell = this.sheet.getRange(i, checkboxColumnNumber);
 
 			// Check if the checkbox is checked
@@ -245,6 +245,15 @@ var TableContext = class TableContext {
 			else this.sheet.showColumns(i);
 		}
 	}
+
+  /***
+   * InsertColumn
+   */
+  insertColumn(columnName) {
+    this.sheet.insertColumnBefore(this.firstColumn);
+    this.setValue(this.firstColumn, this.titleRowNumber,columnName);
+    this.headerCache == null;
+  }
 
 	// Gets a value from a cell
 	getValue(column, rowNumber) {

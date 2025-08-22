@@ -1,4 +1,4 @@
-class Bit extends Organizer.TableContext {
+class Bit extends MyUtilities.TableContext {
 	constructor(sheetName) {
     super(sheetName, SpreadsheetApp.getActiveSpreadsheet(), 1);
 	}
@@ -15,15 +15,6 @@ class Bit extends Organizer.TableContext {
 	}
 
   //
-  getUpdatedDate() {
-    return getRichTextToRightOfValue(this.sheet,lastUpdatedString,this.titleRow).getText();
-  }
-
-  get updatedOn() {
-    return this.updatedDate();
-  }
-
-  // Gets the 
   getBitTable() {
     if (this.tasksTableCache != null) return this.tasksTableCache;
 
@@ -44,7 +35,7 @@ class Bit extends Organizer.TableContext {
   // 
 	getBitNameRichTextValue() {
 		return SpreadsheetApp.newRichTextValue()
-			.setText(this.sheet.getName())
+			.setText(this.name)
 			.setLinkUrl("#gid=" + this.sheet.getSheetId())
 			.build();
 	}
@@ -101,7 +92,6 @@ class Bit extends Organizer.TableContext {
 	}
 
 	getTotaledColumn(columnName) {
-    var columnRange = this[columnBase + "Values"];
 		const values = range
 			.getValues()
 			.flat()

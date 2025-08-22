@@ -1,4 +1,5 @@
 var taskSheetNames = ["Tasks", "To-Do"];
+var nameColumnNames = ["Name"]
 
 var ToDoList = class ToDoList extends TableContext {
 	constructor(sheetName,  spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
@@ -24,14 +25,14 @@ var ToDoList = class ToDoList extends TableContext {
     this.dueSort();
     this.highlightNDW();
 	  this.highlightDates();
-    Logger.Log(`Finished ${this.sheet.getName}.organize`);
+    Logger.log(`Finished ${this.sheet.getName}.organize`);
   }
 
 	/** Highlights the due date column cells
 	 * Based on TODAY'S DATE AND this.nearDateDaysAhead
 	 */
 	highlightDates() {
-		var totalRows = this.lastRow - this.titleRow;
+		var totalRows = this.lastRow - this.titleRowNumber;
 		var today = new Date();
 		var todayDate = getDateAsNumber(today);
 
@@ -39,7 +40,7 @@ var ToDoList = class ToDoList extends TableContext {
 			var cellDate = getDateAsNumber(this.dueValues[i][0]);
 			if (cellDate == null || cellDate == 0) {
 				this.sheet
-					.getRange(i + 1 + this.titleRow, 1, 1, this.lastColumn)
+					.getRange(i + 1 + this.titleRowNumber, 1, 1, this.lastColumn)
 					.setBackground("#434343");
         /************* This is where to put the move row function to move finished tasks to the finished Tasks sheet */
 				continue;
@@ -63,8 +64,8 @@ var ToDoList = class ToDoList extends TableContext {
 	}
 
   highlightNDW() {
-		for (var i = 0; i < this.lastRow - this.titleRow; i++) {
-      var row = this.sheet.getRange(i + this.titleRow + 1,1,1, this.lastColumn);
+		for (var i = 0; i < this.lastRow - this.titleRowNumber; i++) {
+      var row = this.sheet.getRange(i + this.titleRowNumber + 1,1,1, this.lastColumn);
 			if (!this.nDWValues[i][0]) {
         row.setBackground(null);
         continue;
@@ -156,12 +157,13 @@ var ToDoList = class ToDoList extends TableContext {
 			);
 
 		if(!toDoList.updatedColumnNumber) {
-        toDoList.sheet.insertColumnBefore(toDoList.firstColumn);
-        Logger.log(`No update Column found in ${this.Spreadsheet.getName()} on the ${this.SheetName} sheet`);
-        return;
+        toDoList.insertColumn("Updated");
     }
 
-    for (var i = toDoList.titleRow + 1; i <= toDoList.lastRow; i++)
+    var d = toDoList.titleRowNumber;
+    var o = toDoList.lastRow;
+
+    for (var i = toDoList.titleRowNumber + 1; i <= toDoList.lastRow; i++)
 				this.syncWithToDoListRow(toDoList, i, columnMap);
 	}
 
@@ -185,7 +187,7 @@ var ToDoList = class ToDoList extends TableContext {
     if(columnMap.hasOwnProperty("Updated")) {
       syncWithToDoList.updatedColumnName = columnMap["Updated"];
       syncWithToDoList.updatedColumnNumber = syncWithToDoList.headerMap[columnMap["Updated"]];
-    } 
+    }
 
     var thisRowNumber = this.getThisRowNumberToUpdate(syncWithToDoList, importListRowNumber);
     
@@ -200,7 +202,7 @@ var ToDoList = class ToDoList extends TableContext {
     }
 
     if(thisUpdatedDate != null && thisUpdatedDate.getTime() == importUpdatedDate.getTime()) {
-      Logger.log(`Task ${syncWithToDoList.nameValues[importListRowNumber - syncWithToDoList.titleRow - 1][0]} already imported`)
+      Logger.log(`Task ${syncWithToDoList.nameValues[importListRowNumber - syncWithToDoList.titleRowNumber - 1][0]} already imported`)
       return;
     }
     
@@ -237,6 +239,11 @@ var ToDoList = class ToDoList extends TableContext {
       if(updateTitle == "Project")
         importValue = fetchList.project;
 
+      if(nameColumnNames.includes(updateTitle)) {
+        var i = fetchList.sheet.getRange(fetchListRowNumber,i).getRichTextValue();
+        debugger;
+      }
+
       row.push(importValue);
     }
 
@@ -249,14 +256,17 @@ var ToDoList = class ToDoList extends TableContext {
     var thisRowNumber = this.lastRow + 1;
 
       // If the import list doesn't have an id, import it to the last row on this sheet
-    if (!syncWithToDoList.idValues) return thisRowNumber;
+    if (!syncWithToDoList.idValues) {
+      syncWithToDoList.insertColumn("Id")
+      return thisRowNumber;
+    }
 
-    var importRowId = syncWithToDoList.idValues[importListRowNumber - syncWithToDoList.titleRow - 1][0];
+    var importRowId = syncWithToDoList.idValues[importListRowNumber - syncWithToDoList.titleRowNumber - 1][0];
 
     if(importRowId == null || importRowId == "") 
         syncWithToDoList.setValue(syncWithToDoList.idColumnNumber,importListRowNumber,createGuid());
     else if(this.idValues.flat().includes(importRowId)) 
-      thisRowNumber = this.idValues.flat().indexOf(importRowId) + syncWithToDoList.titleRow * 2 + 1;
+      thisRowNumber = this.idValues.flat().indexOf(importRowId) + syncWithToDoList.titleRowNumber * 2 + 1;
 
     return thisRowNumber;
   }

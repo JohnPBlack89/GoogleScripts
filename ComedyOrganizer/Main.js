@@ -1,32 +1,30 @@
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var currentBit = {};
-var bitListSheet = ss.getSheetByName(".Bit List");
+var bitListSheetName = ".Bit List";
+var bitList = new BitList(ss,1);
 
 function arrangeBitList() {
-	sortSheets();
-	checkBitListRows();
+	MyUtilities.sortSheetsAlphabetically(ss);
+	// checkBitListRows();
 }
 
-/**
- * Runs over every sheet and compares the contents in them vs the contents on the Bit List sheet
- */
-function checkBitListRows() {
-	var sheets = ss.getSheets();
+var operatorStrings = {
+	best: "Best",
+	worst: "Worst",
+};
 
-	sheets.forEach(function (sheet) {
-		if (!isBit(sheet.getName())) return;
+var lastUpdatedString = "Last Updated:"
 
-		var row = new BitRow(sheet);
+var emptyRichText = SpreadsheetApp.newRichTextValue().setText("").build();
 
-		if (!row.isUpdated()) return;
+function isBit(sheetName) {
+  var color = ss.getSheetByName(sheetName).getTabColorObject();
+  if(color == green)
+    return true;
 
-		// range.setRichTextValues(summaryData);
-	});
+	return !/^[^a-zA-Z]/.test(sheetName);
 }
 
 function test() {
-  var sheet = ss.getSheetByName("ADHD at 30");
-  var bit = new Bit(sheet);
-  var u = bit.updatedOn;
-  debugger;
+  bitList.update();
 }

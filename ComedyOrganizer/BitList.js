@@ -1,7 +1,44 @@
-class BitList extends Organizer.TableContext {
-  constructor(sheetName, spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
+class BitList extends MyUtilities.TableContext {
+  constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
 		super(sheetName, spreadsheet, titleRowNumber);
+
+    this.list = {};
 	}
+
+  update() {
+    // Sort Sheets
+
+    // get sheet names (now in order)
+
+    // For each sheet name check if it's on the list
+        // if it is check if it's been updated already
+        // if not insert row
+
+    // Get row data and add row
+  }
+  
+  createBit(bitName) {
+    if (!isBit(bitName)) return null;
+    this.list[bitName] = new Bit(bitName);
+    return this.list[bitName];
+  }
+
+  /**
+   * Runs over every sheet and compares the contents in them vs the contents on the Bit List sheet
+   */
+  checkBitListRows() {
+    var sheets = ss.getSheets();
+
+    sheets.forEach(function (sheet) {
+      if (!isBit(sheet.getName())) return;
+
+      var row = new BitRow(sheet);
+
+      if (!row.isUpdated()) return;
+
+      // range.setRichTextValues(summaryData);
+    });
+  }
 
   
 	/**
@@ -17,9 +54,7 @@ class BitList extends Organizer.TableContext {
 	 * Finds which row the bit is at on the bitListSheet
 	 *
 	 * @returns {number}
-	 */
-	getBitListRowNumber() {
-		if (this.bitListRowNumberCache != null) return this.bitListRowNumberCache;
+	getRowNumber(bit) {
 
 		var lastRow = bitListSheet.getLastRow();
 		var rowValues = bitListSheet.getRange(1, 1, lastRow, 1).getValues();
@@ -32,10 +67,7 @@ class BitList extends Organizer.TableContext {
 		}
 		return null;
 	}
-
-	get bitListRowNumber() {
-		return this.getBitListRowNumber();
-	}
+	 */
 
 	getBitRowDetails() {
 		var row = [];

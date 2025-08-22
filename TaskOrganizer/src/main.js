@@ -3,16 +3,16 @@ var longTerm = new MyUtilities.ToDoList("Long-Term", projectSpreadsheet, 1);
 var toDoBoard = new MyUtilities.ToDoList("Tasks", projectSpreadsheet, 2);
 
 function onEdit(e) {
+  var allowToDoUpdates = toDoBoard.sheet.getRange("E1").getValues()[0][0];
   // To-Do Board edits
-	if (projectSpreadsheet.getActiveSheet().getName() == toDoBoard.sheet.getName()) {
-    toDoBoard.updateRowDate(e)
+	if (projectSpreadsheet.getActiveSheet().getName() == toDoBoard.sheet.getName() && allowToDoUpdates) {
+    // toDoBoard.updateRowDate(e)
 		toDoBoard.organize();
     toDoBoard.genreSetHyperlinks();
     toDoBoard.projectSetHyperlinks();
   }
-  
   // Long term edits
-  if (projectSpreadsheet.getActiveSheet().getName() == longTerm.sheet.getName()) {
+  if (projectSpreadsheet.getActiveSheet().getName() == longTerm.sheet.getName() ) {
 		longTerm.genreSetHyperlinks();
   }
 

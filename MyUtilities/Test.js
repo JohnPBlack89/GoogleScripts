@@ -22,8 +22,9 @@ function test() {
 /***
  * To Do
  * - syncWithUrl
- * -    Cascade Imports (Might need isTask)
- * -    Import Google Doc
- * -    Add and Hide Id and Update Columns
+ *     Cascade Imports (Might need isTask)
+ *     Import Google Doc
  * - Refactor
+ *    Batch Update
+ *    Copy RichText Formatting (Background and text colors mostly)
  */
