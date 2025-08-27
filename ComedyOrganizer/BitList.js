@@ -1,20 +1,53 @@
 class BitList extends MyUtilities.TableContext {
   constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
-		super(sheetName, spreadsheet, titleRowNumber);
-
-    this.list = {};
+		super(bitListSheetName, spreadsheet, titleRowNumber);
 	}
 
   update() {
     // Sort Sheets
+    MyUtilities.sortSheetsAlphabetically(this.spreadsheet)
 
     // get sheet names (now in order)
+    this.getBitNames();
+
+    var rowValues = this.bitValues;
 
     // For each sheet name check if it's on the list
-        // if it is check if it's been updated already
-        // if not insert row
+    for(let i = 0; i <= this.bitNames.length; i++) {
+      let bitName = this.bitNames[i];
+      let rowName = rowValues[i][0];
+      let rowNumber = i + this.titleRowNumber;
 
-    // Get row data and add row
+      if(!rowValues.includes(bitName))
+        this.sheet.insertRowAfter(rowNumber++);
+      else if(bitName != rowName)
+        rowNumber = rowValues.indexOf(bitName) + this.titleRowNumber;
+      
+      // If bit has been updated continue
+      if(this.isUpdated(bitName))
+        continue;
+      
+      let bitRow = this.getBitRowDetails(bitName);
+
+      this.setRowValues(bitRow, rowNumber);
+    }
+  }
+
+  getBitNames() {
+    this.bitNames = [];
+	  var sheets = this.spreadsheet.getSheets();
+    var sheetName;
+
+    for (var i = 0; i < sheets.length; i++) {
+      var sheetName = sheets[i].getName();
+      
+      if(!isBit(sheetName))
+        continue;
+
+      this.bitNames.push(sheets[i].getName());
+    }
+
+    this.bitNames.sort();
   }
   
   createBit(bitName) {
@@ -23,23 +56,9 @@ class BitList extends MyUtilities.TableContext {
     return this.list[bitName];
   }
 
-  /**
-   * Runs over every sheet and compares the contents in them vs the contents on the Bit List sheet
-   */
-  checkBitListRows() {
-    var sheets = ss.getSheets();
+  findRowNumber(bitName) {
 
-    sheets.forEach(function (sheet) {
-      if (!isBit(sheet.getName())) return;
-
-      var row = new BitRow(sheet);
-
-      if (!row.isUpdated()) return;
-
-      // range.setRichTextValues(summaryData);
-    });
   }
-
   
 	/**
 	 * Checks whether or not this bit has been updated in the bitList sheet
@@ -47,35 +66,22 @@ class BitList extends MyUtilities.TableContext {
 	 * @returns true|false
 	 */
 	isUpdated(bitName) {
-    
+    throw Error("isUpdated not implemented yet");
 	}
 
-	/***
-	 * Finds which row the bit is at on the bitListSheet
-	 *
-	 * @returns {number}
-	getRowNumber(bit) {
-
-		var lastRow = bitListSheet.getLastRow();
-		var rowValues = bitListSheet.getRange(1, 1, lastRow, 1).getValues();
-
-		for (let i = 0; i < rowValues.length; i++) {
-			if (rowValues[i][0] == this.name) {
-				this.bitListRowNumberCache = i + 1;
-				return this.bitListRowNumberCache;
-			}
-		}
-		return null;
-	}
-	 */
-
-	getBitRowDetails() {
+	getBitRowDetails(bitName) {
+    throw Error("getBitRowDetails not implemented yet");
+    /*
 		var row = [];
 		var headerMap = getHeaderMap(bitListSheet);
 		for (var header in headerMap) row.push(getBitColumnRouter(sheet, header));
 
 		return row;
+    */
 	}
+
+  setRowValues(bitRowDetails, rowNumber) {
+  }
 
   getCheckboxValue(rowHeader, colHeader) {
 		Logger.log(`Start getCheckboxValue of ${colHeader} for ${rowHeader}`);

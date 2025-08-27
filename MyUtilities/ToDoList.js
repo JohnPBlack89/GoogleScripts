@@ -1,19 +1,23 @@
 var taskSheetNames = ["Tasks", "To-Do"];
-var nameColumnNames = ["Name"]
+var nameColumnNames = ["Name"];
+var colors = {
+  pastDateBackgroundColor1 : "#990000",
+  pastDateBackgroundColor2 : "#660000",
+  todayBackgroundColor1 : "#bf9000",
+  todayBackgroundColor2 : "#7f6000",
+  nearDateBackgroundColor1 : "#38761d",
+  nearDateBackgroundColor2 : "#274e13",
+  finishedBackgroundColor : "#434343",
+  ndwBackgroundColor1 : "#990000",
+  ndwBackgroundColor2 : "#660000",
+}
 
 var ToDoList = class ToDoList extends TableContext {
 	constructor(sheetName,  spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
 		super(sheetName, spreadsheet, titleRowNumber);
 
-    this.pastDateBackgroundColor1 = "#990000";
-    this.pastDateBackgroundColor2 = "#660000";
-    this.todayBackgroundColor1 = "#bf9000";
-    this.todayBackgroundColor2 = "#7f6000";
-    this.nearDateBackgroundColor1 = "#38761d";
-    this.nearDateBackgroundColor2 = "#274e13";
-    this.finishedBackgroundColor = "#434343";
-    this.ndwBackgroundColor1 = "#990000";
-    this.ndwBackgroundColor2 = "#660000";
+    for(var color in colors)
+      this[color] = colors[color];
 	}
 
 
@@ -77,13 +81,10 @@ var ToDoList = class ToDoList extends TableContext {
   }
 
   getProjectName() {
-    if(this.Spreadsheet.getName())
-      return this.sheet.getName();
-
-    return this.Spreadsheet.getName();
+    return this.spreadsheet.getName();
   }
 
-  get project() {
+  get projectName() {
     return this.getProjectName();
   }
 
@@ -107,26 +108,22 @@ var ToDoList = class ToDoList extends TableContext {
     }
 
     var referenceId = extractSpreadsheetId(url);
-    var thisId = this.Spreadsheet.getId();
+    var thisId = this.spreadsheet.getId();
     return referenceId == thisId;
   }
 
-
-  /*** Imports ***/
   syncWithUrl(url, columnMap = {}) {
     if(url == null)
           return;
 
-    // Check if cell is a link to another sheet
     if(this.isInternalSheetReference(url)) {
       var gid = extractSpreadsheetId(url);
       var name = getSheetNameByGid(this.Spreadsheet,gid);
       this.syncWithToDoList(new ToDoList(name, this.Spreadsheet), columnMap)
     }
 
-    if(isGoogleSheetReference(url)) {
+    if(isGoogleSheetReference(url))
       this.syncWithSpreadsheet(getSpreadsheetFromUrl(url), columnMap)
-    }
 
     if(isGoogleDocReference(url))
       this.importGoogleDoc(url, columnMap);
@@ -135,11 +132,12 @@ var ToDoList = class ToDoList extends TableContext {
 	syncWithSpreadsheet(spreadsheet, columnMap = {}) {
 		assertSpreadsheet(spreadsheet);
 
-		const spreadsheetSheetNames = spreadsheet
+    const spreadsheetSheetNames = this
+      .spreadsheet
 			.getSheets()
 			.map((sheet) => sheet.getName());
 
-		const taskSheetName = taskSheetNames.filter((name) =>
+		var taskSheetName = taskSheetNames.filter((name) =>
 			spreadsheetSheetNames.includes(name)
 		);
 
@@ -149,110 +147,49 @@ var ToDoList = class ToDoList extends TableContext {
 	}
 
 	syncWithToDoList(toDoList, columnMap = {}) {
-		if (typeof ToDoList == "string") toDoList = new ToDoList(toDoList, 1);
+    toDoList = assertToDoList(toDoList);
 
-		if (!(toDoList instanceof ToDoList))
-			throw new Error(
-				"Must pass either a string or ToDoList object to function importSheet(toDoList)"
-			);
-
-		if(!toDoList.updatedColumnNumber) {
+		if(!toDoList.updatedColumnNumber)
         toDoList.insertColumn("Updated");
-    }
-
-    var d = toDoList.titleRowNumber;
-    var o = toDoList.lastRow;
 
     for (var i = toDoList.titleRowNumber + 1; i <= toDoList.lastRow; i++)
 				this.syncWithToDoListRow(toDoList, i, columnMap);
 	}
 
-	syncWithToDoListRow(syncWithToDoList, importListRowNumber, columnMap = {}) {
-    // Ensure a ToDoList was passed
-		if (!(syncWithToDoList instanceof ToDoList))
-			throw new Error(
-				"Must pass a ToDoList object to function syncWithToDoListRow(syncWithToDoList, importListRowNumber, columnMap = {})" 
-			);
+	syncWithToDoListRow(importToDoList, importListRowNumber, columnMap = {}) {
+    importToDoList = assertToDoList(importToDoList);
 
-    // Need to map dues, name values first!!!
-    if(columnMap.hasOwnProperty("Due")) {
-      syncWithToDoList.dueDateColumnName = columnMap["Due"];
-      syncWithToDoList.dueDateColumnNumber = syncWithToDoList.headerMap[columnMap["Due"]];
-    } else {
-      syncWithToDoList.dueDateColumnName = syncWithToDoList.dueColumnName;
-      syncWithToDoList.dueDateColumnNumber = syncWithToDoList.dueColumnNumber;
-    }
-    
+    importToDoList.applyColumnMap(columnMap);
 
-    if(columnMap.hasOwnProperty("Updated")) {
-      syncWithToDoList.updatedColumnName = columnMap["Updated"];
-      syncWithToDoList.updatedColumnNumber = syncWithToDoList.headerMap[columnMap["Updated"]];
-    }
-
-    var thisRowNumber = this.getThisRowNumberToUpdate(syncWithToDoList, importListRowNumber);
-    
-    // Check if the imported date is the same
-    var thisUpdatedDate = this.updatedValues[thisRowNumber];
-    var importUpdatedDate = syncWithToDoList.getValue(syncWithToDoList.updatedColumnNumber,importListRowNumber);
-
-    // Ensure the imported sheet has filled in its updated date
-    if(importUpdatedDate == "" || importUpdatedDate == null) {
-      syncWithToDoList.setValue(syncWithToDoList.updatedColumnNumber,importListRowNumber, new Date());
-      importUpdatedDate = syncWithToDoList.getValue(syncWithToDoList.updatedColumnNumber,importListRowNumber);
-    }
-
-    if(thisUpdatedDate != null && thisUpdatedDate.getTime() == importUpdatedDate.getTime()) {
-      Logger.log(`Task ${syncWithToDoList.nameValues[importListRowNumber - syncWithToDoList.titleRowNumber - 1][0]} already imported`)
+    if(this.rowUpdated(importToDoList, importListRowNumber)) {
+      Logger.log(`Task ${importToDoList.nameValues[importListRowNumber - importToDoList.titleRowNumber - 1][0]} already imported`);
       return;
     }
+
+    var thisRowNumber = this.getThisRowNumberToUpdate(importToDoList, importListRowNumber);
     
     // Check which list should be updated, based on last updated date
+    var thisUpdatedDate = this.updatedValues[thisRowNumber];
+    var importUpdatedDate = importToDoList.getValue(importToDoList.updatedColumnNumber,importListRowNumber);
+    
     var updateThisList = thisUpdatedDate == null ||  thisUpdatedDate > importUpdatedDate;
-    var listToUpdate = updateThisList ? this : syncWithToDoList;
-    var fetchList = updateThisList ? syncWithToDoList : this;
+    var listToUpdate = updateThisList ? this : importToDoList;
+    var fetchList = updateThisList ? importToDoList : this;
     var updateListRowNumber = updateThisList ? thisRowNumber : importListRowNumber;
     var fetchListRowNumber = updateThisList ? importListRowNumber : thisRowNumber;
 
-    // Check if due date is within import date;
-    var dueDate = fetchList.getValue(fetchList.dueDateColumnName, fetchListRowNumber);
-    if(!dueDate) {
-      Logger.log("Task has no due date");
-      return;
-    }
-
-    var datesUntilDueDate = getDaysBetween(new Date(), dueDate);
-    if (datesUntilDueDate > daysToImportTask) return;
+    var daysUntilDueDate = this.daysUntilDueDate(fetchList, fetchListRowNumber);
+    if (daysUntilDueDate > daysToImportTask) return;
 
     
-    // Create and fill row
-    var row = [];
-    var headerMapCount = Object.keys(listToUpdate.headerMap).length;
-
-    for(var i = 1; i <= headerMapCount; i++) {
-      var updateTitle = getHeaderKeyByValue(listToUpdate.headerMap,i);
-
-      if(columnMap.hasOwnProperty(updateTitle))
-        updateTitle = columnMap[updateTitle];
-
-      var importValue = fetchList.getValue(updateTitle,fetchListRowNumber);
-
-      if(updateTitle == "Project")
-        importValue = fetchList.project;
-
-      if(nameColumnNames.includes(updateTitle)) {
-        var i = fetchList.sheet.getRange(fetchListRowNumber,i).getRichTextValue();
-        debugger;
-      }
-
-      row.push(importValue);
-    }
-
-    listToUpdate.sheet.getRange(updateListRowNumber,1,1,row.length).setValues([row]);
+    listToUpdate.importRow(updateListRowNumber,fetchList,fetchListRowNumber,columnMap);
 	}
 
   // Check if sheet has already imported a task with the same guid
   // Find if current to do list has a matching task, otherwise, add a new row
   getThisRowNumberToUpdate(syncWithToDoList, importListRowNumber) {
+    syncWithToDoList = assertToDoList(syncWithToDoList);
+
     var thisRowNumber = this.lastRow + 1;
 
       // If the import list doesn't have an id, import it to the last row on this sheet
@@ -271,8 +208,101 @@ var ToDoList = class ToDoList extends TableContext {
     return thisRowNumber;
   }
 
+  /**
+   * Determines whether or not this row has already been updated
+   */
+  rowUpdated(importToDoList, importListRowNumber) {
+    // Ensure the imported sheet has filled in its updated date
+    if(importUpdatedDate == "" || importUpdatedDate == null) {
+      importToDoList.setValue(importToDoList.updatedColumnNumber,importListRowNumber, new Date());
+      importUpdatedDate = importToDoList.getValue(importToDoList.updatedColumnNumber,importListRowNumber);
+    }
+    
+    // Check if the updated date is the same
+    var thisRowNumber = this.getThisRowNumberToUpdate(importToDoList, importListRowNumber);
+    var thisUpdatedDate = this.updatedValues[thisRowNumber];
+    var importUpdatedDate = importToDoList.getValue(importToDoList.updatedColumnNumber,importListRowNumber);
+
+    return thisUpdatedDate != null && thisUpdatedDate.getTime() == importUpdatedDate.getTime();
+  }
+
+  
+	/***
+	 * Hides or Unhides all rows in a table
+	 *
+	 * if the checkbox is CHECKED the row is SHOWN
+	 * if UNCHECK the row is HIDDEN
+	 */
+	showHideRows(checkboxColumn) {
+		if (typeof checkboxColumn == "number") checkboxColumn = this.headers[checkboxColumn];
+
+		for (var i = this.titleRow + 1; i <= this.lastRow; i++) {
+			var checkboxCell = this.headers[checkboxColumn]
+
+			// Check if the checkbox is checked
+			if (checkboxCell.isChecked()) this.range.showRows(i);
+			else this.range.hideRows(i);
+		}
+	}
+
+	/***
+	 * Hides or Unhides all columns in a table
+	 *
+	 * if the checkbox is CHECKED the column is SHOWN
+	 * if UNCHECK the column is HIDDEN
+	 */
+	showHideColumns(checkboxRow) {
+		if (typeof checkboxRow == "string")
+			checkboxRow = this.getRowNumber(this.firstColumn, checkboxRowName);
+
+		for (var i = this.firstColumn; i <= this.lastColumn; i++) {
+			var checkboxCell = this.range.getRange(checkboxRow, i);
+
+			if (checkboxCell.isChecked()) this.range.hideColumns(i);
+			else this.range.showColumns(i);
+		}
+	}
+
+
+  applyColumnMap(columnMap) {
+    this.importColumnHeaders = {};
+
+    headers.forEach((header, index) => {
+      this.importColumnHeaders[header] = index + 1; // Column numbers start at 1
+    });
+  }
+
+  importRow(thisRowNumber,fetchList,fetchListRowNumber,columnMap) {
+    // Create and fill row
+    var row = [];
+    var headerMapCount = Object.keys(this.headerMap).length;
+
+    for(var i = 1; i <= headerMapCount; i++) {
+      var updateTitle = getHeaderKeyByValue(this.headerMap,i);
+
+      if(columnMap.hasOwnProperty(updateTitle))
+        updateTitle = columnMap[updateTitle];
+
+      var importValue = fetchList.getValue(updateTitle,fetchListRowNumber);
+
+      if(updateTitle == "Project")
+        importValue = fetchList.project;
+
+      if(nameColumnNames.includes(updateTitle)) {
+        var url = fetchList.sheet.getRange(fetchListRowNumber,i).getRichTextValue().getLinkUrl();
+        if(url) this.syncWithUrl(url);
+      }
+
+      row.push(importValue);
+    }
+
+    this.sheet.getRange(thisRowNumber,1,1,row.length).setValues([row]);
+  }
+
   importGoogleDoc(url, columnMap = {}) {
-    console.log("import Google Doc not implemented yet");
-		// var table = getGoogleDocTable(url, tableNumberInTab, tableTabName);
+		var table = getGoogleDocTable(url).asTable();
+    var rows = table.getNumRows();
+    var headerRow = table.getRow(0).getValues();
+    debugger;
 	}
 }

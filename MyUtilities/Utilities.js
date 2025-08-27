@@ -40,26 +40,13 @@ function createGuid() {
 }
 
 
-
-
-function getHeaderMap(sheet, titleRow, lastColumn) {
-	if (
-		sheet == null ||
-		sheet.getLastColumn() == 0 ||
-		sheet.getRange(titleRow, 1, 1, lastColumn) == undefined
-	)
-		return {};
-
-	var headers = sheet.getRange(titleRow, 1, 1, lastColumn).getValues()[0];
-	var headerMap = {};
-	headers.forEach((header, index) => {
-		headerMap[header] = index + 1; // Column numbers start at 1
-	});
-
-	return headerMap;
-}
-
-function extractSpreadsheetId(url) {
+/**
+ * Get the gid to a google sheet from a url
+ * 
+ * @param {string} url
+ * @returns {string} The gid of the google sheet
+ */
+function extractSheetId(url) {
   if (url.startsWith("#gid="))
       return url.slice(5);
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)\//);
@@ -276,6 +263,18 @@ function isWeekend(day) {
 }
 
 /**
+ * 
+ */
+function daysUntilDate(date) {
+  if(!date) {
+    Logger.log("Task has no due date");
+    return;
+  }
+
+  return getDaysBetween(new Date(), date);
+}
+
+/**
  * Returns a table from a supplied Google Doc url
  *
  * @param {string} sheetUrl - The full url to the google sheet
@@ -362,6 +361,9 @@ function getHeaderKeyByValue(headerMap, targetValue) {
   return Object.keys(headerMap).find(key => headerMap[key] === targetValue);
 }
 
+/**
+ * 
+ */
 function getDaysBetween(startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -373,7 +375,9 @@ function getDaysBetween(startDate, endDate) {
   return diffInDays;
 }
 
-//
+/**
+ * 
+ */
 function getRichTextToRightOfValue(sheet, targetValue, rowNumber) {
 	const dataRange = sheet.getDataRange();
 	const values = dataRange.getValues();
@@ -412,6 +416,9 @@ function sortSheetsAlphabetically(spreadsheet) {
 	}
 }
 
+/**
+ * Determines whether or not the cell is a dropdown
+ */
 function isDropdown(cell) {
 	assertSingleCell(cell);
 	const rule = cell.getDataValidation();

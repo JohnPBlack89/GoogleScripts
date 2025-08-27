@@ -1,12 +1,7 @@
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var currentBit = {};
 var bitListSheetName = ".Bit List";
-var bitList = new BitList(ss,1);
-
-function arrangeBitList() {
-	MyUtilities.sortSheetsAlphabetically(ss);
-	// checkBitListRows();
-}
+var bitList = new BitList(ss);
 
 var operatorStrings = {
 	best: "Best",
@@ -18,13 +13,13 @@ var lastUpdatedString = "Last Updated:"
 var emptyRichText = SpreadsheetApp.newRichTextValue().setText("").build();
 
 function isBit(sheetName) {
-  var color = ss.getSheetByName(sheetName).getTabColorObject();
-  if(color == green)
-    return true;
-
 	return !/^[^a-zA-Z]/.test(sheetName);
 }
 
 function test() {
   bitList.update();
+}
+
+function sort() {
+  MyUtilities.sortSheetsAlphabetically(ss);
 }

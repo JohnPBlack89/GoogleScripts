@@ -24,3 +24,14 @@ function assertSpreadsheet(spreadsheet){
 				"Must pass a Spreadsheet object to function"
 			);
 }
+
+function assertToDoList(toDoList) {
+		if (typeof toDoList == "string") toDoList = new ToDoList(toDoList, 1);
+
+		if (!(toDoList instanceof ToDoList))
+			throw new Error(
+				"Must pass either a string or ToDoList object to function importSheet(toDoList)"
+			);
+    
+    return toDoList;
+}

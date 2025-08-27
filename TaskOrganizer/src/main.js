@@ -3,9 +3,16 @@ var longTerm = new MyUtilities.ToDoList("Long-Term", projectSpreadsheet, 1);
 var toDoBoard = new MyUtilities.ToDoList("Tasks", projectSpreadsheet, 2);
 
 function onEdit(e) {
+  // Check if "Allow Updates" button is checked
   var allowToDoUpdates = toDoBoard.sheet.getRange("E1").getValues()[0][0];
+  if(!allowToDoUpdates) return;
+
+  // Holiday Prep edits
+  if (projectSpreadsheet.getActiveSheet().getName() == holidayPrep.sheet.getName())
+		migrateHolidayPrepToTasks();
+
   // To-Do Board edits
-	if (projectSpreadsheet.getActiveSheet().getName() == toDoBoard.sheet.getName() && allowToDoUpdates) {
+	if (projectSpreadsheet.getActiveSheet().getName() == toDoBoard.sheet.getName()) {
     // toDoBoard.updateRowDate(e)
 		toDoBoard.organize();
     toDoBoard.genreSetHyperlinks();
@@ -15,10 +22,6 @@ function onEdit(e) {
   if (projectSpreadsheet.getActiveSheet().getName() == longTerm.sheet.getName() ) {
 		longTerm.genreSetHyperlinks();
   }
-
-  // Holiday Prep edits
-  if (projectSpreadsheet.getActiveSheet().getName() == holidayPrep.sheet.getName())
-		migrateHolidayPrepToTasks();
 }
 
 function midnightRun() {
