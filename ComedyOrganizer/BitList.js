@@ -1,42 +1,84 @@
-class BitList {
-  constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), bitListSheetName = ".Bit List", titleRow = 1) {
+const nameColumnName = "Bit";
+var bitListSheetName = ".Bit List";
+MyUtilities.commonColumnNameSets.name.push(nameColumnName);
+
+class BitList extends MyUtilities.TableContext {
+  constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), sheet = bitListSheetName, titleRow = 1) {
+    MyUtilities.assertSpreadsheet(spreadsheet);
+
+    if(typeof sheet == "string")
+      sheet = spreadsheet.getSheetByName(sheet);
+
+    var range = sheet.getRange(1 , 1, sheet.getLastRow(), sheet.getLastColumn());
+
+    super(range,titleRow);
+
     this.spreadsheet = spreadsheet;
-    this.listSheet = spreadsheet.getSheetByName(bitListSheetName);
-    this.bitTable = new MyUtilities.TableContext();
+    this.bitContexts = {};
 	}
 
   update() {
-    // Sort Sheets
-    MyUtilities.sortSheetsAlphabetically(this.spreadsheet)
-
-    // get sheet names (now in order)
-    this.getBitNames();
-
-    var rowValues = this.bitValues;
-
     // For each sheet name check if it's on the list
-    for(let i = 0; i <= this.bitNames.length; i++) {
-      let bitName = this.bitNames[i];
-      let rowName = rowValues[i][0];
-      let rowNumber = i + this.titleRowNumber;
-
-      if(!rowValues.includes(bitName))
-        this.sheet.insertRowAfter(rowNumber++);
-      else if(bitName != rowName)
-        rowNumber = rowValues.indexOf(bitName) + this.titleRowNumber;
+    for(let i = 0; i <= this.bitSheetNames.length; i++) {
+      let bitName = this.bitSheetNames[i];
       
       // If bit has been updated continue
-      if(this.isUpdated(bitName))
-        continue;
+      //if(this.isUpdated(bitName))
+      this.isUpdated(bitName);
+      return;
       
-      let bitRow = this.getBitRowDetails(bitName);
+      //let bitRow = this.getBitRowDetails(bitName);
 
-      this.setRowValues(bitRow, rowNumber);
+      //this.setRowValues(bitRow, rowNumber);
     }
   }
 
-  getBitNames() {
-    this.bitNames = [];
+  getHeaders() {
+    if (this.headerCache) return this.headerCache;
+
+    var headerRow = this.row(this.titleRow);
+    const numCells = this.range.getNumColumns();
+    const headerValues = [];
+
+    for (let c = 1; c < numCells; c++) {
+      headerValues.push(headerRow.getCell(c, this.titleRow).getValue());
+    }
+    var t = this.sheet.getTables()[0];
+    var y = t.getHeaderRow
+    this.headerCache = {};
+
+    for(let i = 0; i <= listTitles.length; i++)
+      for(let columnNameSetName in commonColumnNameSets) {
+        if(commonColumnNameSets[columnNameSetName].includes(listTitles[i]))
+          this.headerCache[columnNameSetName] = i + 1;
+        else
+          this.headerCache[listTitles[i]] = i + 1;
+      }
+    var h = this.headers;
+    debugger;
+    return this.headerCache;
+  }
+
+
+  get headers() {
+    return this.getHeaders();
+  }
+
+  /**
+   * Returns all cells from a row
+   */
+  row(row) {
+    if(typeof row == "string" && this.headerCache) row = this.column(this.headers.name).getValues().flat().indexOf(row);
+    return this.range.offset(row, 1, 1, this.range.getNumColumns());
+  }
+
+  /***
+   * Returns all of the names of all of the sheets that return true for the isBit() function
+   */ 
+  getBitSheetNames() {
+    if(this.bitSheetNamesCache) return this.bitSheetNamesCache;
+
+    this.bitSheetNamesCache = [];
 	  var sheets = this.spreadsheet.getSheets();
     var sheetName;
 
@@ -46,20 +88,46 @@ class BitList {
       if(!isBit(sheetName))
         continue;
 
-      this.bitNames.push(sheets[i].getName());
+      this.bitSheetNamesCache.push(sheets[i].getName());
     }
 
-    this.bitNames.sort();
+    this.bitSheetNamesCache.sort();
+
+    return this.bitSheetNamesCache;
+  }
+
+  get bitSheetNames() {
+    return this.getBitSheetNames();
+  }
+
+  /***
+   * Returns all of the names of the bits on the bit list sheet
+   */
+  getBitListNames() {
+    if(this.bitListNamesCache) return this.bitListNamesCache;
+    var h = this.headers.name;
+    this.bitListNamesCache = this.column(this.headers.name).getValues().flat();
+    return this.bitListNamesCache;
+  }
+
+  get bitListNames() {
+    return this.getBitListNames();
   }
   
-  createBit(bitName) {
-    if (!isBit(bitName)) return null;
-    this.list[bitName] = new Bit(bitName);
-    return this.list[bitName];
-  }
 
+  /***
+   * Finds the row number of the bit name on the bit list sheet
+   */
   findRowNumber(bitName) {
+    return this.bitListNames.indexOf(bitName) + 1 + this.titleRow;
+  }
+  
+  getBitContext(bitName) {
+    if (!isBit(bitName)) return null;
+    if(this.bitContexts[bitName]) return this.bitContexts[bitName];
 
+    this.bitContexts[bitName] = new BitContext(bitName, this.spreadsheet);
+    return this.bitContexts[bitName];
   }
   
 	/**
@@ -68,7 +136,11 @@ class BitList {
 	 * @returns true|false
 	 */
 	isUpdated(bitName) {
-    throw Error("isUpdated not implemented yet");
+    var bitContextUpdated = this.getBitContext(bitName).updated;
+    if(!(bitContextUpdated.getValue() instanceof Date)) 
+      bitContextUpdated.setValue(new Date);
+    var bitListSheetUpdatedDate = this.range.getCell(this.findRowNumber(bitName), this.headers.updated).getValue();
+    return bitContextUpdated = bitListSheetUpdatedDate;
 	}
 
 	getBitRowDetails(bitName) {

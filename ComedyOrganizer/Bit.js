@@ -1,6 +1,15 @@
-class Bit extends MyUtilities.TableContext {
-	constructor(range, titleRow = 1) {
+var operatorStrings = {
+	best: "Best",
+	worst: "Worst",
+};
+
+class BitContext extends MyUtilities.TableContext {
+	constructor(bitName, spreadsheet, titleRow = 1) {
+    var sheet = spreadsheet.getSheetByName(bitName);
+    var range = sheet.getRange(titleRow, 1, sheet.getLastRow(), sheet.getLastColumn());
+
     super(range, titleRow);
+    this.sheet = sheet;
 	}
 
   // Returns the name of the bit (taken from the bit sheet)
@@ -14,8 +23,12 @@ class Bit extends MyUtilities.TableContext {
 		return this.getName();
 	}
 
-  //
+  // Gets just the upper table on the sheet (decided by dropdowns in "topics" column)
   getBitTable() {
+    var tables = this.sheet.getTables();
+
+    var t = tables[0];
+
     if (this.tasksTableCache != null) return this.tasksTableCache;
 
     this.tasksTableCache = this.sheet.getRange(
@@ -44,23 +57,36 @@ class Bit extends MyUtilities.TableContext {
     return this.getBitNameRichTextValue();
   }
 
-
-  getProjectRichTextValue() {
-		Logger.log(`Start getProjectRichTextValue for ${this.sheet.getName()}`);
-		var richText = getRichTextToRightOfValue(this.sheet, projectCell, 1);
-
-		if (richText == null) return emptyRichText;
-
-		Logger.log(`Project is ${richText.getText()}`);
-		return getNamedRangeHyperLinks(
-			richText.getText(),
-			projectNamedRange
-		);
-	}
-
-  get project() {
-    return this.getProjectRichTextValue()
+  getUpdatedOn() {
+    var updatedIndex =  this.row(0).getValues().flat().findIndex(item => item instanceof Date);
+    if(updatedIndex == -1) updatedIndex = this.headerLength + 1;
+    return this.sheet.getRange(this.titleRow, updatedIndex);
   }
+
+  get updated() {
+    return this.getUpdatedOn();
+  }
+
+  getTotaledColumn(columnName) {
+		const values = range
+			.getValues()
+			.flat()
+			.toString()
+			.replaceAll(", ", ",")
+			.split(","); // Flatten 2D array to 1D
+
+		const uniqueValues = [...new Set(values.filter(String))]; // Remove blanks and deduplicate
+
+		Logger.log(
+			"getTotaledColumn Column: " +
+				columnName +
+				" Sheet: " +
+				sheet.getName() +
+				" Unique Values: " +
+				uniqueValues
+		);
+		return getNamedRangeHyperLinks(uniqueValues.toString(), namedRange);
+	}
 
   // Gets best/worst in a column
 	getMostCellInColumn(columnName, operator) {
