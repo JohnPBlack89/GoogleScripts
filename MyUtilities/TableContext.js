@@ -1,275 +1,82 @@
 var TableContext = class TableContext {
-	constructor(sheetName, spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
-    if(!spreadsheet.getSheetByName(sheetName))
-      throw new Error(`${sheetName} sheet not found on ${spreadsheet.getName()} spreadsheet`);
-
-		this.SheetName = sheetName;
-		this.titleRowNumber = titleRowNumber;
-    this.firstColumn = 1;
-		this.Spreadsheet = spreadsheet;
-    
-		for(var header in this.headerMap)
-      this.createColumnProperty(header);
+  constructor(range, titleRow = 1) {
+    this.range = range;
+    this.titleRow = titleRow;
 	}
 
-  /** Creates a number getter, sort function, and a function to add all hyperlinks for a passed column
-   */
-  createColumnProperty(columnName) {
-    const baseName = `${columnName.charAt(0).toLowerCase() + columnName.slice(1)}`;
-    const numberGetterName = `${baseName}ColumnNumber`;
-    const numberCacheKey = `${baseName}NumberCacheKey`;
-    const sortFunctionName = `${baseName}Sort`;
-    const hyperlinkFunctionName = `${baseName}SetHyperlinks`;
-    const namedRangeName = `${columnName}NamedRange`;
-    const valueRangeGetterName = `${baseName}Values`;
-    const valueRangeCacheKey = `${baseName}ValuesCacheKey`;
-    const richTextsGetterName = `${baseName}RichTextValues`
-    const richTextsCacheKey = `${baseName}RichTextsCacheKey`
+  /** 
+  * Returns a map of the headers for this table
+  * {header, index}
+  */
+  getHeaders() {
+    if (this.headerCache) return this.headerCache;
 
-    Object.defineProperty(this, numberGetterName, {
-      get: function () {
-        if (this[numberCacheKey] != null) return this[numberCacheKey];
+    var listTitles = this.range.getValues()[this.titleRow];
+    this.headerCache = {};
 
-        this[numberCacheKey] = this.getColumnNumber(columnName);
-        return this[numberCacheKey];
-      },
-      configurable: true,
-      enumerable: true,
-    });
-
-    Object.defineProperty(this, valueRangeGetterName, {
-      get: function () {
-        if (this[valueRangeCacheKey] != null) return this[valueRangeCacheKey];
-
-        this[valueRangeCacheKey] = this.sheet
-			    .getRange(this.titleRowNumber + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRowNumber, 1)
-			    .getValues();
-
-        return this[valueRangeCacheKey];
-      },
-      configurable: true,
-      enumerable: true,
-    });
-
-    Object.defineProperty(this, richTextsGetterName, {
-      get: function () {
-        if (this[richTextsCacheKey] != null) return this[richTextsCacheKey];
-
-        this[richTextsCacheKey] = this.sheet
-			    .getRange(this.titleRowNumber + 1, this.getColumnNumber(columnName), this.lastRow - this.titleRowNumber, 1)
-			    .getRichTextValues();
-        return this[richTextsCacheKey];
-      },
-      configurable: true,
-      enumerable: true,
-    });
-
-
-    Object.defineProperty(this, sortFunctionName , { value: function() {
-		    this.sheetRange.sort(this[numberGetterName]);
-	    }, configurable: true, enumerable: true,
-    })
-
-    Object.defineProperty(this, hyperlinkFunctionName , { value: function() {
-      var cell;
-      for(let i = this.titleRowNumber + 1; i <= this.lastRow; i++) {
-        cell = this.sheet.getRange(i, this[numberGetterName]);
-        setCellHyperlinksFromNamedRange(cell, namedRangeName, this.Spreadsheet);
+    for(let i = 0; i <= listTitles.length; i++)
+      for(let columnNameSetName in commonColumnNameSets) {
+        if(commonColumnNameSets[columnNameSetName].includes(listTitles[i]))
+          this.headerCache[columnNameSetName] = i + 1;
+        else
+          this.headerCache[listTitles[i]] = i + 1;
       }
-      }, configurable: true, enumerable: true,
-    })
-  }
-
-  getHeaderMap() {
-    if (this.headerCache != null) return this.headerCache;
-
-    this.headerCache = getHeaderMap(this.sheet, this.titleRowNumber, this.lastColumn);
+    var h = this.headers;
+    debugger;
     return this.headerCache;
   }
 
-  get headerMap() {
-    return this.getHeaderMap();
+
+  get headers() {
+    return this.getHeaders();
   }
 
-
-  getSheetRange() {
-    if (this.sheetRangeCache != null) return this.sheetRangeCache;
-
-    this.sheetRangeCache = this.sheet.getRange(
-        this.titleRowNumber + 1,
-        this.firstColumn,
-        this.lastRow - this.titleRowNumber + 1,
-        this.lastColumn
-    );
-
-    return this.sheetRangeCache;
+  getHeaderLength() {
+    return Object.entries(this.headers).filter(([key, value]) => value !== "" && value !== undefined).length;
   }
-
-  get sheetRange() {
-    return this.getSheetRange();
-  }
-
-	/**
-	 * Returns the GoogleAppsScript.Spreadsheet.Sheet object that this TableContext represents
-	 * if none is present, it will retrieve, set, and return the property
-	 *
-	 * @returns {GoogleAppsScript.Spreadsheet.Sheet|null} The Sheet object if found, otherwise null
-	 */
-	getSheet() {
-		if (this.Sheet != null) return this.Sheet;
-
-    if(this.Spreadsheet == null)
-      throw new Error("No Spreadsheet found");
-
-		this.Sheet = this.Spreadsheet.getSheetByName(this.SheetName);
-		return this.Sheet;
-	}
-
-	get sheet() {
-		return this.getSheet();
-	}
-
-	/**
-	 * Returns the last row property
-	 * if none is present, it will retrieve, set, and return the property
-	 *
-	 * @returns {number|null} The last row if found, otherwise null
-	 */
-	getLastRow() {
-		if (this.Sheet == null) this.getSheet();
-
-		this.LRow = this.Sheet.getLastRow();
-		return this.LRow;
-	}
-
-	get lastRow() {
-		return this.getLastRow();
-	}
-
-	/**
-	 * Returns the last column property
-	 * if none is present, it will retrieve, set, and return the property
-	 *
-	 * @returns {number|null} The last column if found, otherwise null
-	 */
-	getLastColumn() {
-		if (this.Sheet == null) this.getSheet();
-
-		this.LColumn = this.sheet.getLastColumn();
-		return this.LColumn;
-	}
-
-	get lastColumn() {
-		return this.getLastColumn();
-	}
-
-	/**
-	 * Returns a column number based on a title passed to the function
-	 *
-	 * @param {string} columnTitle The title of a column
-	 * @returns {number} The number the column with that title
-	 */
-	getColumnNumber(columnTitle) {
-		if (this.headerCache[columnTitle] != null) return this.headerCache[columnTitle];
-
-		var titles = this.sheet
-			.getRange(this.titleRowNumber, 1, 1, this.lastColumn)
-			.getValues();
-
-		for (let i = 0; i < titles[0].length; i++) {
-			if (titles[0][i] === columnTitle) {
-				this.headerCache[columnTitle] = ++i;
-				return this.headerCache[columnTitle]
-			}
-		}
-
-		return null;
-	}
-
   
-
-	/**
-	 * Returns a row number based on a value passed to the function
-	 *
-	 * @params {string/number} column The title OR number of a column
-	 * @param {string}
-	 * @returns {number} The number the column with that title
-	 */
-	getRowNumber(column, cellValue) {
-		if (typeof column == "string") column = this.getColumnNumber(column);
-
-		var rowValues = this.sheet.getRange(1, column, this.lastRow, 1).getValues();
-
-		for (let i = this.titleRowNumber; i < rowValues.length; i++) {
-			if (rowValues[i][0] == cellValue) {
-				return i + 1;
-			}
-		}
-
-		return null;
-	}
-
-	/***
-	 * Hides or Unhides all rows in a table
-	 *
-	 * if the checkbox is CHECKED the row is SHOWN
-	 * if UNCHECK the row is HIDDEN
-	 */
-	showHideRows(checkboxColumnName) {
-		var checkboxColumnNumber = this.getColumnNumber(checkboxColumnName);
-
-		for (var i = this.titleRowNumber + 1; i <= this.lastRow; i++) {
-			var checkboxCell = this.sheet.getRange(i, checkboxColumnNumber);
-
-			// Check if the checkbox is checked
-			if (checkboxCell.isChecked()) this.sheet.showRows(i);
-			else this.sheet.hideRows(i);
-		}
-	}
-
-	/***
-	 * Hides or Unhides all columns in a table
-	 *
-	 * if the checkbox is CHECKED the column is SHOWN
-	 * if UNCHECK the column is HIDDEN
-	 */
-	showHideColumns(checkboxRow) {
-		if (typeof column == "string")
-			checkboxRow = this.getRowNumber(this.firstColumn, checkboxRowName);
-
-		for (var i = this.firstColumn; i <= this.lastColumn; i++) {
-			var checkboxCell = this.sheet.getRange(checkboxRow, i);
-
-			// Check if the checkbox is checked
-			if (checkboxCell.isChecked()) this.sheet.hideColumns(i);
-			else this.sheet.showColumns(i);
-		}
-	}
-
-  /***
-   * InsertColumn
-   */
-  insertColumn(columnName) {
-    this.sheet.insertColumnBefore(this.firstColumn);
-    this.setValue(this.firstColumn, this.titleRowNumber,columnName);
-    this.headerCache == null;
+  get headerLength() {
+    return this.getHeaderLength();
   }
 
-	// Gets a value from a cell
-	getValue(column, rowNumber) {
-		if (typeof column == "string") column = this.getColumnNumber(column);
 
-		if (column == null || rowNumber == null) return null;
+  /**
+   * Sort by column
+   */
+  sortBy(column) {
+    if(typeof column == "string") column = this.headers[column];
+    const trimmedRange = this.range.offset(this.titleRow + 1, 1, this.range.getNumRows(), this.range.getNumColumns());
+    trimmedRange.sort(column);
+  }
 
-		var range = this.sheet.getRange(rowNumber, column).getValue();
-		return range;
-	}
+  /**
+   * Returns all cells from a column
+   */
+  column(column) {
+    if(typeof column == "string") column = this.headers[column];
+    return this.range.offset(1, column - 1, this.range.getNumRows() - 1, 1);
+  }
 
-	// Sets a cell value
-	setValue(column, rowNumber, value) {
-		if (typeof column == "string") column = this.getColumnNumber(column);
-		if (this.Sheet == null) this.getSheet();
+  /**
+   * Returns all cells from a row
+   */
+  row(row) {
+    if(typeof row == "string") row = this.column(this.headers.name).getValues().flat().indexOf(row);
+    return this.range.offset(row, 1, 1, this.range.getNumColumns());
+  }
 
-		this.sheet.getRange(rowNumber, column).setValue(value);
-	}
+  /**
+   * Checks if a given URL is a reference to another sheet within the same document
+   * An internal sheet reference typically contains the spreadsheet ID and a "#gid=" parameter.
+   *
+   * @param {string} url The URL to check.
+   * @returns {boolean} True if the URL is an internal sheet reference, false otherwise.
+  */
+  isInternalSheetReference(url) {
+    if (!url || typeof url !== "string") return false;
+
+    var referenceId = extractSpreadsheetId(url);
+    var thisId = this.spreadsheet.getId();
+    return referenceId == thisId;
+  }
 }

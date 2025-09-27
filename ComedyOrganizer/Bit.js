@@ -1,6 +1,6 @@
 class Bit extends MyUtilities.TableContext {
-	constructor(sheetName) {
-    super(sheetName, SpreadsheetApp.getActiveSpreadsheet(), 1);
+	constructor(range, titleRow = 1) {
+    super(range, titleRow);
 	}
 
   // Returns the name of the bit (taken from the bit sheet)

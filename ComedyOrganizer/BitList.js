@@ -1,6 +1,8 @@
-class BitList extends MyUtilities.TableContext {
-  constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), titleRowNumber = 1) {
-		super(bitListSheetName, spreadsheet, titleRowNumber);
+class BitList {
+  constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), bitListSheetName = ".Bit List", titleRow = 1) {
+    this.spreadsheet = spreadsheet;
+    this.listSheet = spreadsheet.getSheetByName(bitListSheetName);
+    this.bitTable = new MyUtilities.TableContext();
 	}
 
   update() {

@@ -25,13 +25,27 @@ function assertSpreadsheet(spreadsheet){
 			);
 }
 
+/**
+ * Validates that the provided parameter is a ToDoList Object
+ * 
+ * @param {ToDoList} spreadsheet - The Spreadsheet object to validate.
+ * @throws {Error} If the spreadsheet is not a Spreadsheet.
+ */
 function assertToDoList(toDoList) {
-		if (typeof toDoList == "string") toDoList = new ToDoList(toDoList, 1);
-
 		if (!(toDoList instanceof ToDoList))
 			throw new Error(
-				"Must pass either a string or ToDoList object to function importSheet(toDoList)"
+				"Must pass either a string or ToDoList object to function"
 			);
     
     return toDoList;
+}
+
+/***
+ * Validates that the provided parameter is a single row Range Object
+ * 
+ * @param {Range} range - The Range object to validate.
+ * @throws {Error} If the range is not a Range.
+ */
+function assertSingleRow(range) {
+    if(range.getNumRows() != 1) throw new Error("Can only pass one row");
 }

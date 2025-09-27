@@ -1,12 +1,11 @@
 var projectSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-var longTerm = new MyUtilities.ToDoList("Long-Term", projectSpreadsheet, 1);
-var toDoBoard = new MyUtilities.ToDoList("Tasks", projectSpreadsheet, 2);
+var factory = new MyUtilities.ToDoListFactory();
+// var longTerm = factory.createFromSheet("Long-Term", projectSpreadsheet, 1);
+var toDoBoard = factory.createFromSheet("Tasks", projectSpreadsheet, 2);
 
 function onEdit(e) {
-  // Check if "Allow Updates" button is checked
-  var allowToDoUpdates = toDoBoard.sheet.getRange("E1").getValues()[0][0];
-  if(!allowToDoUpdates) return;
-
+  toDoBoard.organize();
+  return;
   // Holiday Prep edits
   if (projectSpreadsheet.getActiveSheet().getName() == holidayPrep.sheet.getName())
 		migrateHolidayPrepToTasks();
@@ -25,8 +24,7 @@ function onEdit(e) {
 }
 
 function midnightRun() {
-  importLongTerm();
-  migrateHolidayPrepToTasks();
+  // importLongTerm();
 	toDoBoard.organize();
 }
 
@@ -36,9 +34,8 @@ function importLongTerm() {
     if(link == null)
       continue;
     
-    // Check if "Active" column is check- if not, don't import
-    var projectActive = longTerm.activeValues[projectNumber][0];
-    if(!projectActive)
+    // Check if "Active" column is checked - if not, don't import
+    if(!longTerm.activeValues[projectNumber][0])
       continue;
     
     toDoBoard.syncWithUrl(link);
@@ -52,4 +49,8 @@ function importLongTerm() {
 
     toDoBoard.syncWithUrl(link);
   }
+}
+
+function test() {
+	toDoBoard.organize();
 }
