@@ -95,24 +95,25 @@ class BitContext extends MyUtilities.TableContext {
   // Gets best/worst in a column
 	getMostCellInColumn(columnName, operator) {
 		Logger.log(
-			`Start getMostCellInColumn ${operator} for ${columnName} for ${this.sheet.getName()}`
+			`Start getMostCellInColumn:${operator} for ${columnName} for ${this.sheet.getName()}`
 		);
-		var columnRange = getRangeFromColumn(
-			this.sheet,
-			commonNames[columnPrefix + "Column"]
-		);
+
+		var columnRange = this.column(columnName);
+
 		if (columnRange == null) return emptyRichText;
 
 		let resultString = "";
 
-		columnRange.sort({ column: columnRange.getColumn(), ascending: true });
-		const values = columnRange.getValues().flat();
+		const values = columnRange.getValues().flat().sort();
 
 		if (operator == operatorStrings.worst)
-			resultString = values[values.length - 1];
+			resultString = values[0];
 
-		if (operator == operatorStrings.best) resultString = values[0];
-		var richText = getNamedRangeHyperLinks(
+		if (operator == operatorStrings.best) resultString = values[values.length - 1];
+
+    // Stopped here, need better get Named Range Hyperlinks function
+    throw new Error("Stopped here, need better get Named Range Hyperlinks function");
+		var richText = MyUtilities.getNamedRangeHyperLinks(
 			resultString,
 			commonNames[columnName + "NamedRange"]
 		);
@@ -122,7 +123,7 @@ class BitContext extends MyUtilities.TableContext {
 	}
 
 	getTotaledColumn(columnName) {
-		const values = range
+		const values = this.column(columnName)
 			.getValues()
 			.flat()
 			.toString()
@@ -139,6 +140,10 @@ class BitContext extends MyUtilities.TableContext {
 				" Unique Values: " +
 				uniqueValues
 		);
+    
+    // Stopped here, need better get Named Range Hyperlinks function
+    throw new Error("Stopped here, need better get Named Range Hyperlinks function");
+    
 		return getNamedRangeHyperLinks(uniqueValues.toString(), namedRange);
 	}
 }

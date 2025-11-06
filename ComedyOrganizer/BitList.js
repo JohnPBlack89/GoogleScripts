@@ -3,6 +3,18 @@ var bitListSheetName = ".Bit List";
 var commonColumnNameSets = MyUtilities.commonColumnNameSets;
 commonColumnNameSets.name.push(nameColumnName);
 
+const totaledColumns = ["Topics","Links w/","Techniques Used","Project","Performances"];
+
+const bestColumns = {
+  "Earliest Step":"Current Step",
+  "Highest Quality":"Quality"
+  };
+
+const worstColumns = {
+  "Latest Step":"Current Step",
+  "Lowest Quality":"Quality"
+  };
+
 class BitList extends MyUtilities.TableContext{
   constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), sheet = bitListSheetName, titleRow = 1) {
     MyUtilities.assertSpreadsheet(spreadsheet);
@@ -75,7 +87,7 @@ class BitList extends MyUtilities.TableContext{
    * Finds the row number of the bit name on the bit list sheet
    */
   findRowNumber(bitName) {
-    return this.bitListNames.indexOf(bitName) + 2 + this.titleRow;
+    return this.bitListNames.indexOf(bitName) + this.titleRow + 1;
   }
   
   getBitContext(bitName) {
@@ -101,7 +113,22 @@ class BitList extends MyUtilities.TableContext{
 
   setRowValues(bitName) {
     var bitContext = this.getBitContext(bitName);
-    debugger; // Stopped here
+    var thisRowNumber = this.findRowNumber(bitName);
+    var thisRow = this.row(thisRowNumber);
+
+    for(var header in this.headers) {
+      // Totaled Columns
+      if(totaledColumns.includes(header))
+        thisRow.offset(0,this.headers[header],1,1).setValue(bitContext.getTotaledColumn(header));
+
+      // Best Columns
+      if(Object.keys(bestColumns).includes(header))
+        thisRow.offset(0,this.headers[header],1,1).setValue(bitContext.getMostCellInColumn(bestColumns[header],"Best"));
+
+      // Worst Columns
+      if(Object.keys(worstColumns).includes(header))
+        thisRow.offset(0,this.headers[header],1,1).setValue(bitContext.getMostCellInColumn(worstColumns[header],"Worst"));
+    }
   }
 
   getCheckboxValue(rowHeader, colHeader) {
