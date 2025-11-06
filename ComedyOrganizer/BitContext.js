@@ -110,12 +110,15 @@ class BitContext extends MyUtilities.TableContext {
 			resultString = values[0];
 
 		if (operator == operatorStrings.best) resultString = values[values.length - 1];
+    var sets = columnNameSets;
+    var col = this.headers[columnName];
+    var head = this.headers;
+    var namedRangeName = columnNameSets[columnName] + "NamedRange";
 
     // Stopped here, need better get Named Range Hyperlinks function
-    throw new Error("Stopped here, need better get Named Range Hyperlinks function");
-		var richText = MyUtilities.getNamedRangeHyperLinks(
+		var richText = getNamedRangeHyperlinks(
 			resultString,
-			commonNames[columnName + "NamedRange"]
+      namedRangeName
 		);
 
 		Logger.log(`getMostCellInColumn ${richText.getText()}`);
@@ -140,9 +143,6 @@ class BitContext extends MyUtilities.TableContext {
 				" Unique Values: " +
 				uniqueValues
 		);
-    
-    // Stopped here, need better get Named Range Hyperlinks function
-    throw new Error("Stopped here, need better get Named Range Hyperlinks function");
     
 		return getNamedRangeHyperLinks(uniqueValues.toString(), namedRange);
 	}

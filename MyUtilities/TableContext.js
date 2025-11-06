@@ -3,7 +3,6 @@ var TableContext = class TableContext {
     this.range = range;
     this.titleRow = titleRow;
     this.headers;
-    this.bitListNames;
 	}
 
   getHeaders() {
@@ -49,8 +48,15 @@ var TableContext = class TableContext {
    * Returns all cells from a row
    */
   row(row) {
-    if(typeof row == "string" && this.headerCache) row = this.column(this.headers.name).getValues().flat().indexOf(row);
+    if(typeof row == "string" && this.headerCache) row = this.rowNumber(row);
     return this.range.offset(row, 0, 1, this.range.getNumColumns());
+  }
+
+  /**
+   * Returns all cells from a row
+   */
+  rowNumber(value, column = this.headers.name ) {
+    return this.column(column).getValues().flat().indexOf(value);
   }
 
 

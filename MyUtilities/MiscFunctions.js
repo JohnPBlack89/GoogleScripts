@@ -26,27 +26,38 @@ function columnToLetter(column) {
 	return letter;
 }
 
-/**
- * Sorts the sheets in the spreadsheet alphabetically
+/***
+ * Sorts the 
  */
-function sortSheetsAlphabetically(spreadsheet) {
-  console.log("sortSheetsAlphabetically() started");
-	var sheetNameArray = [];
-	var sheets = spreadsheet.getSheets();
+function sortSheetsAlphabetically(spreadsheet = SpreadsheetApp.getActiveSpreadsheet()) {
+  console.log("Starting: sortSheetsAlphabetically")
+  const sheets = spreadsheet.getSheets();
+  
+  const sheetNames = sheets.map(sheet => sheet.getName());
+  const sortedSheetNames = sheetNames.slice().sort();
 
-	for (var i = 0; i < sheets.length; i++) {
-		sheetNameArray.push(sheets[i].getName());
-	}
+  // Compare current order to sorted order
+  let needsSorting = false;
+  for (let i = 0; i < sheets.length; i++) {
+    if (sheets[i].getName() !== sortedSheetNames[i]) {
+      needsSorting = true;
+      break;
+    }
+  }
 
-	sheetNameArray.sort();
+  if (!needsSorting) {
+    Logger.log("Sheets are already in alphabetical order. No reordering performed.");
+    return;
+  }
+  
+  // Reorganize Sheets
+  for (let i = 0; i < sortedSheetNames.length; i++) {
+    const sheet = spreadsheet.getSheetByName(sortedSheetNames[i]);
+    spreadsheet.setActiveSheet(sheet);
+    spreadsheet.moveActiveSheet(i + 1);
+  }
 
-	for (var j = 0; j < sheets.length; j++) {
-		spreadsheet.setActiveSheet(spreadsheet.getSheetByName(sheetNameArray[j]));
-		spreadsheet.moveActiveSheet(j + 1);
-	}
-
-  spreadsheet.setActiveSheet(spreadsheet.getSheetByName(sheetNameArray[0]));
-  console.log("sortSheetsAlphabetically() finished");
+  Logger.log("Sheets have been sorted alphabetically.");
 }
 
 /**

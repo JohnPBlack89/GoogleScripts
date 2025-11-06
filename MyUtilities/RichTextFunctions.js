@@ -10,7 +10,7 @@ function setRichTextFromNamedRange(cell, namedRangeName, spreadsheet = Spreadshe
 	assertSingleCell(cell);
 
 	// Gets the RichText
-	var richText = getRichTextFromNamedRange(cell, namedRangeName, spreadsheet);
+	var richText = getRichTextFromNamedRange(cell.getValue(), namedRangeName, spreadsheet);
 
 	cell.setRichTextValue(richText);
 }
@@ -23,27 +23,24 @@ function setRichTextFromNamedRange(cell, namedRangeName, spreadsheet = Spreadshe
  * @param {string} namedRangeName
  * @returns {RichTextValue}
  */
-function getRichTextFromNamedRange(cell, namedRangeName, spreadsheet = SpreadsheetApp.getActiveSpreadsheet()) {
-	assertSingleCell(cell);
+function getRichTextFromNamedRange(text, namedRangeName, spreadsheet = SpreadsheetApp.getActiveSpreadsheet()) {
 	var richText;
-  var cellValue =  cell.getValue();
 
-	var cellSelections = cellValue.replaceAll(", ", ",").split(",");
-	if (!cellSelections | (cellSelections[0] == "")) return emptyRichText;
+	var textOptions = text.replaceAll(", ", ",").split(",");
+	if (!textOptions | (textOptions[0] == "")) return emptyRichText;
 
 	// Get values from named range to compare against
 	var namedRange = spreadsheet.getRangeByName(namedRangeName);
 	var namedRangeValues = namedRange.getValues().flat();
 
-	// Cycle throught cellSelections
-	for (let i = 0; i < cellSelections.length; i++) {
-    var cellSelection = cellSelections[i];
+	for (let i = 0; i < textOptions.length; i++) {
+    var cellSelection = textOptions[i];
     if(cellSelection == null || cellSelection == undefined || cellSelection == "")
       continue;
 
     var index = namedRangeValues.indexOf(cellSelection);
     var rangeCell = namedRange.getCell(index + 1, 1);
-    richText = addRichTextURL(rangeCell, richText);
+    richText = addRichTextURLs(rangeCell, richText);
     continue;
 	}
 	return richText;
@@ -52,30 +49,30 @@ function getRichTextFromNamedRange(cell, namedRangeName, spreadsheet = Spreadshe
 /**
  * Adds a hyperlink to a url on to an already existing RichTextValue
  *
- * @param {Range} cell
+ * @param {Range} namedRangeCell
  * @param {RichTextValue} sourceRichTextValue
  * @returns {RichTextValue}
  */
-function addRichTextURL(cell, sourceRichTextValue) {
-	assertSingleCell(cell);
+function addRichTextURLs(namedRangeCell, currentRichTextValue) {
+	assertSingleCell(namedRangeCell);
 
-	var newText = cell.getValue();
-	var linkUrl = cell.getRichTextValue().getLinkUrl();
+	var newText = namedRangeCell.getValue();
+	var linkUrl = namedRangeCell.getRichTextValue().getLinkUrl();
 	var linkStart;
 	var linkText;
 	var newRichTextValue = SpreadsheetApp.newRichTextValue();
 
-	if (sourceRichTextValue == undefined) {
-		sourceRichTextValue = SpreadsheetApp.newRichTextValue();
+	if (currentRichTextValue == undefined) {
+		currentRichTextValue = SpreadsheetApp.newRichTextValue();
 		linkText = newText;
 		linkStart = 0;
 		newRichTextValue.setText(linkText);
 	} else {
-		var oldTextLength = sourceRichTextValue.getText().length;
-		linkText = sourceRichTextValue.getText() + ", " + newText;
+		var oldTextLength = currentRichTextValue.getText().length;
+		linkText = currentRichTextValue.getText() + ", " + newText;
 		linkStart = oldTextLength + 2;
 		newRichTextValue = addHyperlinkToRichTextValue(
-			sourceRichTextValue,
+			currentRichTextValue,
 			linkText
 		);
 	}

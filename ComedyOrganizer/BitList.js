@@ -1,7 +1,9 @@
 const nameColumnName = "Bit";
 var bitListSheetName = ".Bit List";
-var commonColumnNameSets = MyUtilities.commonColumnNameSets;
-commonColumnNameSets.name.push(nameColumnName);
+var columnNameSets = MyUtilities.commonColumnNameSets;
+columnNameSets.name.push(nameColumnName);
+columnNameSets["steps"] = ["Current Step"];
+
 
 const totaledColumns = ["Topics","Links w/","Techniques Used","Project","Performances"];
 
@@ -16,17 +18,21 @@ const worstColumns = {
   };
 
 class BitList extends MyUtilities.TableContext{
-  constructor(spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), sheet = bitListSheetName, titleRow = 1) {
+  constructor(titleRow = 1, spreadsheet = SpreadsheetApp.getActiveSpreadsheet(), sheet = bitListSheetName) {
+    console.log("Creating Bit List");
     MyUtilities.assertSpreadsheet(spreadsheet);
 
     if(typeof sheet == "string")
       sheet = spreadsheet.getSheetByName(sheet);
+
+    assertSheet(sheet);
 
     var range = sheet.getDataRange();
     super(range, titleRow);
     this.bitListNames;
     this.spreadsheet = spreadsheet;
     this.bitContexts = {};
+    this.sheet = sheet;
 	}
 
   update() {
@@ -76,7 +82,20 @@ class BitList extends MyUtilities.TableContext{
   getBitListNames() {
     if(this.bitListNamesCache) return this.bitListNamesCache;
     this.bitListNamesCache = this.column(this.headers.name).getValues().flat();
+    this.sortBitListNames();
     return this.bitListNamesCache;
+  }
+
+  sortBitListNames() {
+    this.bitListNamesCache = this.bitListNamesCache.sort((a, b) => {
+      if (a === "" && b !== "") {
+        return 1;
+      }
+      if (a !== "" && b === "") {
+        return -1;
+      }
+      return a.localeCompare(b);
+    });
   }
 
   get bitListNames() {
@@ -86,8 +105,15 @@ class BitList extends MyUtilities.TableContext{
   /***
    * Finds the row number of the bit name on the bit list sheet
    */
-  findRowNumber(bitName) {
-    return this.bitListNames.indexOf(bitName) + this.titleRow + 1;
+  getBitNumber(bitName) {
+    var index = this.bitListNames.indexOf(bitName);
+
+    if(index != -1) 
+      return index;
+
+    this.bitListNames.push(bitName);
+    this.sortBitListNames();
+    return this.bitListNames.indexOf(bitName);
   }
   
   getBitContext(bitName) {
@@ -105,7 +131,7 @@ class BitList extends MyUtilities.TableContext{
 	 */
 	bitUpdated(bitName) {
     var bitContextUpdateDate = this.getBitContext(bitName).updatedOn;
-    var rowNumber = this.findRowNumber(bitName);
+    var rowNumber = this.getBitNumber(bitName);
     var columnNumber = this.headers["Last Updated"];
     var bitListSheetUpdatedDate = this.spreadsheet.getSheetByName(bitListSheetName).getRange(rowNumber,columnNumber).getValue();
     return bitContextUpdateDate == bitListSheetUpdatedDate;
@@ -113,8 +139,16 @@ class BitList extends MyUtilities.TableContext{
 
   setRowValues(bitName) {
     var bitContext = this.getBitContext(bitName);
-    var thisRowNumber = this.findRowNumber(bitName);
-    var thisRow = this.row(thisRowNumber);
+    var bitNumber = this.getBitNumber(bitName);
+
+    throw new Error("Need better row number formula in MyUtilities");
+    // Need better row number formula in my utilities
+    var rowNumber = this.rowNumber()
+    var sheetRows = this.sheet.getLastRow();
+    var to = this.row(bitName);
+    var thisRow = this.row(bitNumber);
+
+    thisRow.offset(0,this.headers["name"],1,1).setValue(bitContext.name);
 
     for(var header in this.headers) {
       // Totaled Columns
