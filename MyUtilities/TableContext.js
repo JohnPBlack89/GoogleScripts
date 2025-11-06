@@ -2,41 +2,55 @@ var TableContext = class TableContext {
   constructor(range, titleRow = 1) {
     this.range = range;
     this.titleRow = titleRow;
+    this.headers;
+    this.bitListNames;
 	}
 
-  /** 
-  * Returns a map of the headers for this table
-  * {header, index}
-  */
   getHeaders() {
     if (this.headerCache) return this.headerCache;
 
-    var listTitles = this.range.getValues()[this.titleRow];
+    const headerValues = this.range.offset(this.titleRow - 1,0,1, this.range.getNumColumns()).getValues()[0];
+
     this.headerCache = {};
 
-    for(let i = 0; i <= listTitles.length; i++)
+    for(let i = 0; i <= headerValues.length; i++)
       for(let columnNameSetName in commonColumnNameSets) {
-        if(commonColumnNameSets[columnNameSetName].includes(listTitles[i]))
+        if(commonColumnNameSets[columnNameSetName].includes(headerValues[i]))
           this.headerCache[columnNameSetName] = i + 1;
         else
-          this.headerCache[listTitles[i]] = i + 1;
+          this.headerCache[headerValues[i]] = i + 1;
       }
-    var h = this.headers;
-    debugger;
+
     return this.headerCache;
   }
-
 
   get headers() {
     return this.getHeaders();
   }
 
+  
   getHeaderLength() {
     return Object.entries(this.headers).filter(([key, value]) => value !== "" && value !== undefined).length;
   }
   
   get headerLength() {
     return this.getHeaderLength();
+  }
+  
+  /**
+   * Returns all cells from a column
+   */
+  column(column) {
+    if(typeof column == "string") column = this.headers[column];
+    return this.range.offset(1, column -1, this.range.getNumRows() - 1, 1);
+  }
+
+  /**
+   * Returns all cells from a row
+   */
+  row(row) {
+    if(typeof row == "string" && this.headerCache) row = this.column(this.headers.name).getValues().flat().indexOf(row);
+    return this.range.offset(row, 0, 1, this.range.getNumColumns());
   }
 
 
@@ -47,22 +61,6 @@ var TableContext = class TableContext {
     if(typeof column == "string") column = this.headers[column];
     const trimmedRange = this.range.offset(this.titleRow + 1, 1, this.range.getNumRows(), this.range.getNumColumns());
     trimmedRange.sort(column);
-  }
-
-  /**
-   * Returns all cells from a column
-   */
-  column(column) {
-    if(typeof column == "string") column = this.headers[column];
-    return this.range.offset(1, column - 1, this.range.getNumRows() - 1, 1);
-  }
-
-  /**
-   * Returns all cells from a row
-   */
-  row(row) {
-    if(typeof row == "string") row = this.column(this.headers.name).getValues().flat().indexOf(row);
-    return this.range.offset(row, 1, 1, this.range.getNumColumns());
   }
 
   /**

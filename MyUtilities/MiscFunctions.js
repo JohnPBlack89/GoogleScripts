@@ -30,6 +30,7 @@ function columnToLetter(column) {
  * Sorts the sheets in the spreadsheet alphabetically
  */
 function sortSheetsAlphabetically(spreadsheet) {
+  console.log("sortSheetsAlphabetically() started");
 	var sheetNameArray = [];
 	var sheets = spreadsheet.getSheets();
 
@@ -43,6 +44,9 @@ function sortSheetsAlphabetically(spreadsheet) {
 		spreadsheet.setActiveSheet(spreadsheet.getSheetByName(sheetNameArray[j]));
 		spreadsheet.moveActiveSheet(j + 1);
 	}
+
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName(sheetNameArray[0]));
+  console.log("sortSheetsAlphabetically() finished");
 }
 
 /**
